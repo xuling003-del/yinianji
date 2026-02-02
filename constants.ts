@@ -1,5 +1,5 @@
 
-import { Course, Lesson, Question, ParentSettings, QuestionCategory } from './types';
+import { Course, Lesson, Question, ParentSettings, QuestionCategory, AchievementCard } from './types';
 import { QUESTION_BANK } from './questions';
 
 export const COURSES: Course[] = [
@@ -16,6 +16,49 @@ export const DEFAULT_SETTINGS: ParentSettings = {
   },
   shuffleQuestions: true
 };
+
+export const ACHIEVEMENT_CARDS: AchievementCard[] = [
+  {
+    id: 'streak_3',
+    title: '坚持之星',
+    conditionText: '连续学习3天解锁',
+    icon: '🌱',
+    message: '奖励给坚持与成长的你',
+    colorClass: 'bg-green-100 border-green-300 text-green-700'
+  },
+  {
+    id: 'streak_10',
+    title: '胜利勋章',
+    conditionText: '连续学习10天解锁',
+    icon: '🏆',
+    message: '你不仅聪明，还勤奋，没有什么事情是你办不到的！',
+    colorClass: 'bg-amber-100 border-amber-300 text-amber-700'
+  },
+  {
+    id: 'perfect_score',
+    title: '智慧光环',
+    conditionText: '单关卡无错题解锁',
+    icon: '✨',
+    message: '奖励给细心与智慧的你',
+    colorClass: 'bg-indigo-100 border-indigo-300 text-indigo-700'
+  },
+  {
+    id: 'speed_runner',
+    title: '闪电侠',
+    conditionText: '单关卡1分钟内通关解锁',
+    icon: '⚡',
+    message: '你像闪电一样迅捷，手握智慧的权杖',
+    colorClass: 'bg-sky-100 border-sky-300 text-sky-700'
+  },
+  {
+    id: 'perfect_storm',
+    title: '完美风暴',
+    conditionText: '1分钟内且无错题通关解锁',
+    icon: '💎',
+    message: '速度与准确的完美结合，你是当之无愧的超级探险家！',
+    colorClass: 'bg-rose-100 border-rose-300 text-rose-700'
+  }
+];
 
 // 伪随机生成器，根据 seed 确保生成结果的可复现性
 function seededRandom(seed: number) {

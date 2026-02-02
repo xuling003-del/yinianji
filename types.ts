@@ -49,6 +49,15 @@ export interface ParentSettings {
   shuffleQuestions: boolean; // true = random order, false = ordered by category
 }
 
+export interface AchievementCard {
+  id: string;
+  title: string;
+  conditionText: string;
+  icon: string;
+  message: string;
+  colorClass: string; // Tailwind classes for background/border
+}
+
 export interface UserState {
   name: string;
   avatar: string;
@@ -57,6 +66,7 @@ export interface UserState {
   usedQuestionIds: string[]; // Track questions used across all days
   activeCourseId: string;
   unlockedItems: string[];
+  unlockedAchievements: string[]; // List of unlocked card IDs
   gameSeed: number; // Random seed unique to the user profile
   
   // New Statistics Fields

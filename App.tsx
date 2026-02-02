@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats } from './types';
-import { COURSES, AVATARS, generateLesson, DEFAULT_SETTINGS } from './constants';
+import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats, AchievementCard } from './types';
+import { COURSES, AVATARS, generateLesson, DEFAULT_SETTINGS, ACHIEVEMENT_CARDS } from './constants';
 
 // --- Helper Functions ---
 function shuffleArray<T>(array: T[]): T[] {
@@ -631,6 +631,112 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   );
 };
 
+const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
+  const [activeTab, setActiveTab] = useState<'avatar' | 'cards'>('cards');
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+
+  const selectedCard = ACHIEVEMENT_CARDS.find(c => c.id === selectedCardId);
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-sky-50 flex flex-col items-center overflow-hidden font-standard">
+      {/* Top Bar */}
+       <div className="w-full p-4 flex justify-between items-center z-10 bg-sky-50/90 backdrop-blur-sm">
+         <button onClick={onClose} className="text-3xl md:text-5xl text-gray-300 hover:text-gray-500">✕</button>
+         <h2 className="text-2xl md:text-4xl font-black text-amber-600 font-playful">✨ 宝藏店 ✨</h2>
+         <div className="w-8"></div>
+       </div>
+
+       {/* Tabs */}
+       <div className="flex gap-4 mb-4 md:mb-6 p-1 bg-white rounded-xl border-2 border-amber-100 shadow-sm">
+          <button 
+            onClick={() => setActiveTab('cards')} 
+            className={`px-4 py-2 rounded-lg font-bold transition-all ${activeTab === 'cards' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
+          >
+            荣誉卡片
+          </button>
+          <button 
+            onClick={() => setActiveTab('avatar')} 
+            className={`px-4 py-2 rounded-lg font-bold transition-all ${activeTab === 'avatar' ? 'bg-sky-100 text-sky-600' : 'text-gray-400'}`}
+          >
+            魔法皮肤
+          </button>
+       </div>
+
+       {/* Content Area */}
+       <div className="flex-1 w-full overflow-y-auto px-4 pb-20 flex flex-col items-center">
+          <div className="w-full max-w-5xl">
+            
+            {/* Achievement Cards Tab */}
+            {activeTab === 'cards' && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+                {ACHIEVEMENT_CARDS.map(card => {
+                  const unlocked = user.unlockedAchievements?.includes(card.id);
+                  return (
+                    <div 
+                      key={card.id} 
+                      onClick={() => unlocked && setSelectedCardId(card.id)}
+                      className={`relative aspect-[3/4] rounded-2xl border-4 transition-all duration-300 flex flex-col items-center justify-center p-2 text-center group ${unlocked ? 'bg-white border-white shadow-xl cursor-pointer hover:scale-105 rotate-0' : 'bg-gray-200 border-gray-300 opacity-80 cursor-not-allowed grayscale'}`}
+                    >
+                       <div className="text-4xl md:text-6xl mb-2">{unlocked ? card.icon : '🔒'}</div>
+                       <h3 className={`font-black text-sm md:text-lg mb-1 ${unlocked ? 'text-gray-800' : 'text-gray-500'}`}>{card.title}</h3>
+                       {!unlocked && (
+                         <div className="absolute inset-0 bg-gray-900/10 rounded-xl flex items-end justify-center p-2">
+                            <span className="text-[10px] md:text-xs font-bold text-white bg-gray-600 px-2 py-1 rounded-full">{card.conditionText}</span>
+                         </div>
+                       )}
+                       {unlocked && <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">点击查看</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Avatars Tab */}
+            {activeTab === 'avatar' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
+                {AVATARS.map(a => {
+                  const owned = user.unlockedItems.includes(a.id);
+                  return (
+                    <div key={a.id} className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] shadow-xl flex flex-col items-center gap-4 md:gap-6 border-4 border-white">
+                      <div className="text-6xl md:text-8xl">{a.icon}</div>
+                      <button 
+                          disabled={owned && user.avatar === a.icon}
+                          onClick={() => {
+                            if (owned) {
+                              setUser({...user, avatar: a.icon});
+                            } else if (user.stars >= a.cost) {
+                              setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
+                            }
+                          }}
+                          className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-lg md:text-xl transition-all ${user.avatar === a.icon ? 'bg-sky-100 text-sky-500' : owned ? 'bg-sky-500 text-white' : user.stars >= a.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                      >
+                        {user.avatar === a.icon ? '使用中' : owned ? '更换' : `${a.cost} ⭐`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+       </div>
+
+       {/* Card Detail Modal */}
+       {selectedCard && (
+         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedCardId(null)}>
+            <div className={`w-full max-w-sm ${selectedCard.colorClass} border-4 bg-white p-8 rounded-[2rem] shadow-2xl transform transition-all scale-100 flex flex-col items-center text-center relative`} onClick={e => e.stopPropagation()}>
+               <button onClick={() => setSelectedCardId(null)} className="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100">✕</button>
+               <div className="text-[6rem] mb-4 animate-bounce">{selectedCard.icon}</div>
+               <h2 className="text-3xl font-black mb-2">{selectedCard.title}</h2>
+               <div className="w-16 h-1 bg-current opacity-20 rounded-full mb-6"></div>
+               <p className="text-xl font-bold leading-relaxed opacity-90">{selectedCard.message}</p>
+               <div className="mt-8 text-xs font-bold uppercase tracking-widest opacity-50">Honor Card</div>
+            </div>
+         </div>
+       )}
+    </div>
+  );
+};
+
 const IslandMap: React.FC<{ user: UserState; onSelectDay: (d: number) => void; setView: (v: View) => void }> = ({ user, onSelectDay, setView }) => {
   const finished = user.courseProgress[user.activeCourseId] || [];
   const days = Array.from({ length: 20 }, (_, i) => i + 1);
@@ -675,7 +781,8 @@ export default function App() {
         streak: parsed.streak || 0,
         lastLoginDate: parsed.lastLoginDate || '',
         statsHistory: parsed.statsHistory || {},
-        parentSettings: parsed.parentSettings || DEFAULT_SETTINGS
+        parentSettings: parsed.parentSettings || DEFAULT_SETTINGS,
+        unlockedAchievements: parsed.unlockedAchievements || []
       };
     }
     return { 
@@ -686,6 +793,7 @@ export default function App() {
       usedQuestionIds: [], 
       activeCourseId: 'main', 
       unlockedItems: ['cat'],
+      unlockedAchievements: [],
       gameSeed: Math.floor(Math.random() * 1000000),
       streak: 0,
       lastLoginDate: '',
@@ -741,11 +849,13 @@ export default function App() {
               totalQuestionsByCategory: { basic: 0, application: 0, logic: 0, sentence: 0, word: 0 }
             };
 
+            const mistakesCount = Object.values(lessonStats.mistakesByCat).reduce((a, b) => a + b, 0);
+
             // Merge new stats
             const updatedStats = {
               ...currentStats,
               timeSpentSeconds: currentStats.timeSpentSeconds + lessonStats.timeSpent,
-              mistakes: currentStats.mistakes + Object.values(lessonStats.mistakesByCat).reduce((a, b) => a + b, 0),
+              mistakes: currentStats.mistakes + mistakesCount,
               mistakesByCategory: {
                  ...currentStats.mistakesByCategory,
                  basic: currentStats.mistakesByCategory.basic + lessonStats.mistakesByCat.basic,
@@ -755,6 +865,22 @@ export default function App() {
                  word: currentStats.mistakesByCategory.word + lessonStats.mistakesByCat.word,
               }
             };
+            
+            // Check for Achievement Unlocks
+            const newUnlocks = [...user.unlockedAchievements];
+            
+            // 1. Streak Cards (Check current streak)
+            // Note: streak is updated on mount. If this is today's first lesson, streak is already correct for "today".
+            if (user.streak >= 3 && !newUnlocks.includes('streak_3')) newUnlocks.push('streak_3');
+            if (user.streak >= 10 && !newUnlocks.includes('streak_10')) newUnlocks.push('streak_10');
+            
+            // 2. Performance Cards
+            const isNoMistakes = mistakesCount === 0;
+            const isFast = lessonStats.timeSpent < 60; // Less than 1 minute
+
+            if (isNoMistakes && !newUnlocks.includes('perfect_score')) newUnlocks.push('perfect_score');
+            if (isFast && !newUnlocks.includes('speed_runner')) newUnlocks.push('speed_runner');
+            if (isNoMistakes && isFast && !newUnlocks.includes('perfect_storm')) newUnlocks.push('perfect_storm');
 
             setUser(prev => ({
               ...prev,
@@ -765,7 +891,8 @@ export default function App() {
                 ...prev.statsHistory,
                 [today]: updatedStats
               },
-              lastLevelStats: lessonStats
+              lastLevelStats: lessonStats,
+              unlockedAchievements: newUnlocks
             }));
             setView(View.MAP);
           }}
@@ -774,33 +901,7 @@ export default function App() {
       )}
 
       {view === View.STORE && (
-        <div className="fixed inset-0 z-[100] bg-sky-50 p-6 md:p-10 flex flex-col items-center overflow-y-auto">
-           <button onClick={() => setView(View.MAP)} className="absolute top-4 left-4 md:top-8 md:left-8 text-3xl md:text-5xl text-gray-300">✕</button>
-           <h2 className="text-3xl md:text-5xl font-black text-amber-600 mb-8 md:mb-12 font-playful mt-8">魔法皮肤店 🎁</h2>
-           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 w-full max-w-6xl">
-              {AVATARS.map(a => {
-                const owned = user.unlockedItems.includes(a.id);
-                return (
-                  <div key={a.id} className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] shadow-xl flex flex-col items-center gap-4 md:gap-6 border-4 border-white">
-                     <div className="text-6xl md:text-8xl">{a.icon}</div>
-                     <button 
-                        disabled={owned && user.avatar === a.icon}
-                        onClick={() => {
-                          if (owned) {
-                            setUser({...user, avatar: a.icon});
-                          } else if (user.stars >= a.cost) {
-                            setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
-                          }
-                        }}
-                        className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-lg md:text-xl transition-all ${user.avatar === a.icon ? 'bg-sky-100 text-sky-500' : owned ? 'bg-sky-500 text-white' : user.stars >= a.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
-                     >
-                       {user.avatar === a.icon ? '使用中' : owned ? '更换' : `${a.cost} ⭐`}
-                     </button>
-                  </div>
-                );
-              })}
-           </div>
-        </div>
+        <StoreView user={user} setUser={setUser} onClose={() => setView(View.MAP)} />
       )}
 
       {view === View.PROFILE && (
