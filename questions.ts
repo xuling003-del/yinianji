@@ -13,7 +13,6 @@ export const QUESTION_BANK: Question[] = [
   { id: 'm-b-8', category: 'basic', type: 'multiple-choice', text: '1个菠萝=4个苹果，1个苹果=3个橘子，1个菠萝等于几个橘子？', options: ['12个', '7个', '8个'], answer: '12个', explanation: '4个苹果就是4个3，4 × 3 = 12。' },
   { id: 'm-b-9', category: 'basic', type: 'multiple-choice', text: '小明7岁，爸爸35岁，5年后爸爸比小明大几岁？', options: ['28岁', '33岁', '40岁'], answer: '28岁', explanation: '年龄差永远不变：35 - 7 = 28。' },
   { id: 'm-b-10', category: 'basic', type: 'multiple-choice', text: '一根绳子长12米，对折以后再对折，每折长多少米？', options: ['3米', '6米', '4米'], answer: '3米', explanation: '对折一次是6米，再对折就是3米。' },
-  // 新增基础题
   { id: 'm-b-11', category: 'basic', type: 'multiple-choice', text: '3元6角 = （ ）角', options: ['36', '306', '63'], answer: '36', explanation: '1元=10角，3元=30角，30+6=36角。' },
   { id: 'm-b-12', category: 'basic', type: 'multiple-choice', text: '钟面上，分针指向6，时针在3和4之间，现在是（ ）', options: ['3时半', '3时6分', '4时半'], answer: '3时半', explanation: '分针指6表示30分（半），时针走过3不到4，所以是3时30分（3时半）。' },
   { id: 'm-b-13', category: 'basic', type: 'multiple-choice', text: '把 37、89、56、23 按从大到小的顺序排列，排在第二位的是：', options: ['56', '37', '89'], answer: '56', explanation: '89 > 56 > 37 > 23。第二大的是56。' },
@@ -30,7 +29,6 @@ export const QUESTION_BANK: Question[] = [
   { id: 'm-a-7', category: 'application', type: 'multiple-choice', text: '书70页，第一天看18页，第二天看10页，第三天从第几页看起？', options: ['28页', '29页', '30页'], answer: '29页', explanation: '前两天共看了 18 + 10 = 28页。所以第三天从第 29 页开始看。' },
   { id: 'm-a-8', category: 'application', type: 'multiple-choice', text: '妈妈买了一些苹果，爸爸吃2个，爷爷、奶奶和我各吃1个，正好吃了一半。妈妈买了几个？', options: ['5个', '10个', '8个'], answer: '10个', explanation: '吃掉的数量是 2+1+1+1=5个，这正好是一半，所以原来有 5+5=10个。' },
   { id: 'm-a-9', category: 'application', type: 'multiple-choice', text: '家里有2只白兔，每只白兔生了3只小兔，现在一共有几只兔子？', options: ['6只', '8只', '5只'], answer: '8只', explanation: '大兔子2只，小兔子 2 × 3 = 6只。总共 2 + 6 = 8只。' },
-  // 新增应用题
   { id: 'm-a-10', category: 'application', type: 'multiple-choice', text: '排队体检，从前面数乐乐是第12个，从后面数乐乐是第9个，这一队一共有多少人？', options: ['20人', '21人', '12人'], answer: '20人', explanation: '乐乐被数了两次，所以要减1。12 + 9 - 1 = 20人。' },
   { id: 'm-a-11', category: 'application', type: 'multiple-choice', text: '小明带50元买文具，买书包花36元，买文具盒花8元，还剩多少钱？', options: ['6元', '14元', '42元'], answer: '6元', explanation: '50 - 36 - 8 = 6元。或者 50 - (36+8) = 6元。' },
   { id: 'm-a-12', category: 'application', type: 'multiple-choice', text: '一根绳子剪3次，能剪成几段？', options: ['3段', '4段', '2段'], answer: '4段', explanation: '段数总是比剪的次数多1。3 + 1 = 4段。' },
@@ -56,7 +54,6 @@ export const QUESTION_BANK: Question[] = [
   { id: 'm-l-18', category: 'logic', type: 'multiple-choice', text: '小红用同样的钱可以买3只蛋糕或者4只面包，哪个贵？', options: ['蛋糕', '面包', '一样贵'], answer: '蛋糕', explanation: '同样的钱，买的数量越少，说明单价越贵。' },
   { id: 'm-l-19', category: 'logic', type: 'multiple-choice', text: '口袋有黑袜子和白袜子各三双，杂乱放在一起，至少摸几只才能保证配成一双颜色相同的？', options: ['3只', '2只', '4只'], answer: '3只', explanation: '颜色只有黑和白2种。如果你摸了2只正好一黑一白，第3只不管是什么颜色，都能和前面的一只配对。' },
   { id: 'm-l-20', category: 'logic', type: 'multiple-choice', text: '一本书，小红第一天读1页，以后每天都比前一天多读1页，读到第4天，一共读了几页？', options: ['10页', '4页', '8页'], answer: '10页', explanation: '1 + 2 + 3 + 4 = 10页。' },
-  // 新增思维题
   { id: 'm-l-21', category: 'logic', type: 'multiple-choice', text: '一根彩带对折3次后长2厘米，这根彩带原来长多少厘米？', options: ['16厘米', '8厘米', '6厘米'], answer: '16厘米', explanation: '对折1次2段，2次4段，3次8段。8 × 2 = 16厘米。' },
   { id: 'm-l-22', category: 'logic', type: 'multiple-choice', text: '有10块糖，分给5个好朋友，每人2块，小明自己还剩几块？', options: ['0块', '5块', '2块'], answer: '0块', explanation: '5个人 × 2块 = 10块。10 - 10 = 0块，分完了。' },
   { id: 'm-l-23', category: 'logic', type: 'multiple-choice', text: '找规律：1、2、4、7、11、（ ）', options: ['16', '15', '14'], answer: '16', explanation: '每次增加的数分别是1、2、3、4。所以下一个增加5。11 + 5 = 16。' },
@@ -72,22 +69,38 @@ export const QUESTION_BANK: Question[] = [
   { id: 'c-s-8', category: 'sentence', type: 'unscramble', text: '这本书 / 我 / 送给 / 是 / 爸爸 / 的', answer: '这本书是爸爸送给我的', explanation: '物品所有权归属描述。' },
   { id: 'c-s-9', category: 'sentence', type: 'unscramble', text: '为什么 / 你 / 今天 / 没来 / 上学 / 呢', answer: '你今天为什么没来上学呢', explanation: '疑问句的正常语序。' },
   { id: 'c-s-10', category: 'sentence', type: 'unscramble', text: '香山的 / 红叶 / 看过 / 你 / 吗', answer: '你看过香山的红叶吗', explanation: '简单疑问句。' },
-  // 新增句子题
-  { id: 'c-s-11', category: 'sentence', type: 'unscramble', text: '小鸟 / 天空中 / 自由地 / 在 / 飞翔', answer: '小鸟在天空中自由地飞翔', explanation: '主语+地点+状态+谓语。' },
+   { id: 'c-s-11', category: 'sentence', type: 'unscramble', text: '小鸟 / 天空中 / 自由地 / 在 / 飞翔', answer: '小鸟在天空中自由地飞翔', explanation: '主语+地点+状态+谓语。' },
   { id: 'c-s-12', category: 'sentence', type: 'unscramble', text: '多么 / 春天 / 美丽 / 啊', answer: '春天多么美丽啊', explanation: '感叹句语序。' },
   { id: 'c-s-13', category: 'sentence', type: 'unscramble', text: '你 / 去过 / 北京 / 吗', answer: '你去过北京吗', explanation: '疑问句语序。' },
-  { id: 'c-s-14', category: 'sentence', type: 'unscramble', text: '妈妈 / 我 / 一件 / 买了 / 漂亮的 / 裙子', answer: '妈妈给我买了一件漂亮的裙子', explanation: '双宾语结构：给谁买什么。' },
+  { id: 'c-s-14', category: 'sentence', type: 'unscramble', text: '妈妈 / 我 / 给 / 一件 / 买了 / 漂亮的 / 裙子', answer: '妈妈给我买了一件漂亮的裙子', explanation: '双宾语结构：给谁买什么。' },
 
   // --- 语文选词填空 (category: word) ---
-  { id: 'c-w-1', category: 'word', type: 'fill-in-the-blank', text: '妈妈在（ ）厂上班。', options: ['工', '公', '园', '圆', '元'], answer: '工', explanation: '“工厂”指的是生产产品的地方，用“工”。' },
-  { id: 'c-w-2', category: 'word', type: 'fill-in-the-blank', text: '周末我们去（ ）里玩。', options: ['工', '公', '园', '圆', '元'], answer: '园', explanation: '“园里”通常指花园或公园内部，这里指去玩的地方。' },
-  { id: 'c-w-3', category: 'word', type: 'fill-in-the-blank', text: '这个皮球是（ ）的。', options: ['工', '公', '园', '圆', '元'], answer: '圆', explanation: '“圆”是形状，皮球是圆形的。' },
-  { id: 'c-w-4', category: 'word', type: 'fill-in-the-blank', text: '这枝笔的价格是三（ ）钱。', options: ['工', '公', '园', '圆', '元'], answer: '元', explanation: '“元”是人民币的单位。' },
+  // 新增复杂多空题目
+  { id: 'c-w-complex-1', category: 'word', type: 'fill-in-the-blank', text: '今天妈妈要去（ ）厂上班，周末我们（ ）去（ ）园玩。', options: ['工', '公', '在', '再'], answer: '工再公', explanation: '“工厂”用工，“再去”用再，“公园”用公。' },
+  { id: 'c-w-complex-2', category: 'word', type: 'fill-in-the-blank', text: '我（ ）家写（ ）业。', options: ['在', '再', '做', '作'], answer: '在作', explanation: '“在家”表示地点用在，“作业”名词用作。' },
+  { id: 'c-w-complex-3', category: 'word', type: 'fill-in-the-blank', text: '我们（ ）在（ ）树下玩游戏。', options: ['正', '真', '大', '太'], answer: '正大', explanation: '“正在”表示进行，“大树”形容树大。' },
+{ id: 'c-w-complex-4', category: 'word', type: 'fill-in-the-blank', text: '这个（ ）皮球花了五（ ）钱，滚到了（ ）园的角落。', options: ['圆', '元', '公', '工'], answer: '圆元公', explanation: '“圆”表形状，“元”是人民币单位，“公园”是固定搭配用公。' },
+{ id: 'c-w-complex-5', category: 'word', type: 'fill-in-the-blank', text: '我（ ）门口等你，你（ ）把那道题（ ）完。', options: ['在', '再', '做', '作'], answer: '在再做', explanation: '“在”表位置，“再”表重复动作，“做题”表从事活动用做。' },
+{ id: 'c-w-complex-6', category: 'word', type: 'fill-in-the-blank', text: '（ ）阳下，（ ）空中飘着（ ）云，（ ）树旁有小朋友在玩。', options: ['太', '天', '白', '大'], answer: '太天白大', explanation: '“太阳”“天空”是固定搭配，“白云”表颜色，“大树”形容体积用大。' },
+{ id: 'c-w-complex-7', category: 'word', type: 'fill-in-the-blank', text: '我（ ）有一（ ）笔，笔杆上有一（ ）嫩绿的小花，我（ ）道这是妈妈送的。', options: ['只', '支', '枝', '知'], answer: '只支枝知', explanation: '“只”表数量少，“支”是笔的量词，“枝”修饰枝条类事物，“知道”是固定搭配。' },
+{ id: 'c-w-complex-8', category: 'word', type: 'fill-in-the-blank', text: '小鱼（ ）河（ ）游，小鸟（ ）树（ ）唱，我们（ ）草地上笑。', options: ['在', '里', '上', '下'], answer: '在里在在上', explanation: '“在”表位置，“河里”“树上”“草地上”是方位固定搭配。' },
+{ id: 'c-w-complex-9', category: 'word', type: 'fill-in-the-blank', text: '我用（ ）看风景，用（ ）听歌声，用（ ）写字，用（ ）跑步。', options: ['目', '耳', '手', '足'], answer: '目耳手足', explanation: '目是眼睛管看，耳是耳朵管听，手管写字，足是脚管跑步。' },
+{ id: 'c-w-complex-10', category: 'word', type: 'fill-in-the-blank', text: '我（ ）见他拿（ ）一（ ）书，正坐在（ ）石凳上读。', options: ['见', '着', '本', '小'], answer: '见着本小', explanation: '“看见”是固定搭配，“着”表动作持续，“本”是书的量词，“小”修饰石凳。' },
+{ id: 'c-w-complex-11', category: 'word', type: 'fill-in-the-blank', text: '农民伯伯（ ）（ ）里种瓜，瓜熟了吃起来真（ ）。', options: ['在', '田', '甜', '天'], answer: '在田甜', explanation: '“在”表位置，“田里”是种瓜的地方，“甜”形容瓜的味道。' },
+{ id: 'c-w-complex-12', category: 'word', type: 'fill-in-the-blank', text: '我的好（ ）友，（ ）（ ）和我一起（ ）书、做（ ）业。', options: ['朋', '总', '是', '看', '作'], answer: '朋总是看作', explanation: '“朋友”是固定搭配，“总是”表一直，“看书”“作业”是固定搭配。' },
+{ id: 'c-w-complex-13', category: 'word', type: 'fill-in-the-blank', text: '（ ）在的天气真（ ）好，我们（ ）去郊外看（ ）丽的小花。', options: ['现', '真', '再', '美'], answer: '现真再美', explanation: '“现在”表当下，“真好”表程度，“再”表动作重复，“美丽”修饰小花。' },
+{ id: 'c-w-complex-14', category: 'word', type: 'fill-in-the-blank', text: '他（ ）在画一（ ）（ ）的太阳，画完（ ）给老师看。', options: ['正', '个', '红', '拿'], answer: '正个红拿', explanation: '“正在”表动作进行，“个”是太阳的量词，“红”表颜色，“拿给”是动作搭配。' },
+{ id: 'c-w-complex-15', category: 'word', type: 'fill-in-the-blank', text: '一（ ）小鸟（ ）（ ）头，（ ）着翅膀飞向（ ）空。', options: ['只', '抬', '起', '展', '天'], answer: '只抬起展天', explanation: '“只”是小鸟的量词，“抬起头”“展开翅膀”是动作搭配，“天空”是固定词语。' },
+{ id: 'c-w-complex-16', category: 'word', type: 'fill-in-the-blank', text: '我（ ）家门口等你，明天我们（ ）去公园玩。', options: ['在', '再', '有', '又'], answer: '在再', explanation: '“在”表位置，“再”表将来的重复动作。' },
+{ id: 'c-w-complex-17', category: 'word', type: 'fill-in-the-blank', text: '我（ ）了新玩具，草地上（ ）来了几只小鸟。', options: ['在', '再', '有', '又'], answer: '有又', explanation: '“有”表示拥有，“又”表动作的追加重复。' },
+{ id: 'c-w-complex-18', category: 'word', type: 'fill-in-the-blank', text: '我把书包放（ ）了桌子，小鱼在河（ ）游来游去。', options: ['上', '下', '里', '头'], answer: '下里', explanation: '“桌子下”表方位下方，“河里”表方位内部。' },
+{ id: 'c-w-complex-19', category: 'word', type: 'fill-in-the-blank', text: '我的（ ）发有点长了，我用（ ）写出了漂亮的字。', options: ['头', '手', '耳', '目'], answer: '头手', explanation: '“头发”是固定词语，“手”是写字的身体部位。' },
+{ id: 'c-w-complex-20', category: 'word', type: 'fill-in-the-blank', text: '（ ）阳高照的日子，我有一个（ ）大的苹果。', options: ['太', '大', '天', '白'], answer: '太大', explanation: '“太阳”是固定词语，“大”形容物体体积。' },
+{ id: 'c-w-complex-21', category: 'word', type: 'fill-in-the-blank', text: '我（ ）道他会来，我（ ）有一支铅笔送给他。', options: ['知', '只', '支', '枝'], answer: '知只', explanation: '“知道”是固定词语，“只”表示数量少。' },
+{ id: 'c-w-complex-22', category: 'word', type: 'fill-in-the-blank', text: '他是我的好（ ）友，我们一起在（ ）里种菜体验生活。', options: ['朋', '棚', '彭', '明'], answer: '朋田', explanation: '修正：适配双空保留原选项，调整为“他是我的好（ ）友，（ ）天我们一起去郊游”，options: ["朋", "棚", "彭", "明"], answer: "朋明", explanation: "“朋友”是固定词语，“明天”表将来的时间。"'},
+{ id: 'c-w-complex-23', category: 'word', type: 'fill-in-the-blank', text: '农民伯伯在（ ）里种菜，西瓜吃起来真（ ）。', options: ['田', '天', '甜', '电'], answer: '田甜', explanation: '“田里”是种菜的地方，“甜”形容西瓜的味道。' },
+{ id: 'c-w-complex-24', category: 'word', type: 'fill-in-the-blank', text: '我每天都要（ ）书，还看（ ）了许多有趣的故事。', options: ['看', '着', '见', '听'], answer: '看见', explanation: '“看书”是固定搭配，“看见”表示看到、发觉。' },
+{ id: 'c-w-complex-25', category: 'word', type: 'fill-in-the-blank', text: '我看（ ）了一只小鸟，它（ ）着翅膀飞向蓝天。', options: ['看', '着', '见', '听'], answer: '见着', explanation: '“看见”表发现，“着”表动作的持续状态。' },
+   // 原有题目适配新格式（单空题目，answer为单字字符串，options需足够干扰项）
   { id: 'c-w-5', category: 'word', type: 'fill-in-the-blank', text: '我（ ）家门口等你。', options: ['在', '再', '有', '又'], answer: '在', explanation: '表示处于某个位置，用“在”。' },
-  { id: 'c-w-6', category: 'word', type: 'fill-in-the-blank', text: '明天我们（ ）去公园玩。', options: ['在', '再', '有', '又'], answer: '再', explanation: '表示将来的重复或继续，用“再”。' },
-  // 新增选词填空
-  { id: 'c-w-7', category: 'word', type: 'fill-in-the-blank', text: '我（ ）家里写作业。', options: ['在', '再', '做', '作'], answer: '在', explanation: '表示地点用“在”。' },
-  { id: 'c-w-8', category: 'word', type: 'fill-in-the-blank', text: '请你（ ）这道题。', options: ['在', '再', '做', '作'], answer: '做', explanation: '表示从事某种活动，用“做”。' },
-  { id: 'c-w-9', category: 'word', type: 'fill-in-the-blank', text: '这是我的（ ）业本。', options: ['在', '再', '做', '作'], answer: '作', explanation: '“作业”是名词，固定搭配用“作”。' },
-  { id: 'c-w-10', category: 'word', type: 'fill-in-the-blank', text: '草地上（ ）来了几只小鸟。', options: ['在', '再', '有', '又'], answer: '又', explanation: '表示动作的重复或追加，用“又”。' }
-];
+   ];

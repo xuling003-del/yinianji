@@ -3,6 +3,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { UserState, View, Lesson, Question } from './types';
 import { COURSES, AVATARS, generateLesson } from './constants';
 
+// --- Helper Functions ---
+function shuffleArray<T>(array: T[]): T[] {
+  const newArr = [...array];
+  for (let i = newArr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+  }
+  return newArr;
+}
+
 // --- UI Components ---
 
 const Header: React.FC<{ user: UserState; setView: (v: View) => void }> = ({ user, setView }) => (
@@ -33,82 +43,198 @@ const LessonViewer: React.FC<{
 }> = ({ lesson, onComplete, onClose }) => {
   const [step, setStep] = useState<'intro' | 'quiz' | 'finish'>('intro');
   const [qIndex, setQIndex] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{msg: string, ok: boolean} | null>(null);
   
-  // Scrambling state
+  // Standard Multiple Choice State
+  const [selected, setSelected] = useState<string | null>(null);
+
+  // Unscramble State
   const [scrambledSelected, setScrambledSelected] = useState<string[]>([]);
+
+  // Fill-in-the-blank State (New)
+  const [blankSlots, setBlankSlots] = useState<string[]>([]);
+  const [blankBank, setBlankBank] = useState<string[]>([]);
 
   const q = lesson.questions[qIndex];
 
-  const handleAnswer = (ans: string) => {
+  // Initialize states when question changes
+  useEffect(() => {
+    // Reset common states
+    setFeedback(null);
+    setSelected(null);
+    setScrambledSelected([]);
+    
+    // Init Fill-in-the-blank
+    if (q.type === 'fill-in-the-blank') {
+      const numBlanks = q.text.split('（ ）').length - 1;
+      setBlankSlots(Array(numBlanks).fill(''));
+      if (q.options) {
+        setBlankBank(shuffleArray([...q.options]));
+      }
+    }
+  }, [qIndex, lesson]);
+
+  // Multiple Choice Shuffle
+  const currentOptions = useMemo(() => {
+    if (q.type !== 'multiple-choice' || !q.options) return [];
+    return shuffleArray(q.options);
+  }, [q]);
+
+  // Handle MC Answer
+  const handleMCAnswer = (ans: string) => {
     if (selected) return;
     setSelected(ans);
-    const cleanUser = ans.replace(/\s+/g, '');
-    const cleanCorrect = q.answer.replace(/\s+/g, '');
-    
-    if (cleanUser === cleanCorrect) {
+    if (ans === q.answer) {
       setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
     } else {
       setFeedback({ msg: q.explanation, ok: false });
     }
   };
 
-  const wordBank = useMemo(() => {
+  // Handle Unscramble Logic
+  const unscrambleWordBank = useMemo(() => {
     if (q?.type !== 'unscramble') return [];
-    return q.text.split('/').map(s => s.trim()).sort(() => Math.random() - 0.5);
+    return shuffleArray(q.text.split('/').map(s => s.trim()));
   }, [qIndex, lesson]);
 
-  const availableWords = useMemo(() => {
+  const availableUnscrambleWords = useMemo(() => {
     let temp = [...scrambledSelected];
-    return wordBank.filter(w => {
+    return unscrambleWordBank.filter(w => {
       const idx = temp.indexOf(w);
       if (idx > -1) { temp.splice(idx, 1); return false; }
       return true;
     });
-  }, [scrambledSelected, wordBank]);
+  }, [scrambledSelected, unscrambleWordBank]);
 
+  const handleUnscrambleSubmit = () => {
+    const userAns = scrambledSelected.join('');
+    const correctAns = q.answer.replace(/\s+/g, ''); // Unscramble answer is usually the full sentence
+    if (userAns === correctAns) {
+      setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
+    } else {
+      setFeedback({ msg: q.explanation, ok: false });
+    }
+  };
+
+  // Handle Fill-in-the-blank Logic
+  const handleFillBankClick = (word: string, bankIndex: number) => {
+    // Find first empty slot
+    const emptyIndex = blankSlots.findIndex(s => s === '');
+    if (emptyIndex === -1) return; // No empty slots
+
+    const newSlots = [...blankSlots];
+    newSlots[emptyIndex] = word;
+    setBlankSlots(newSlots);
+
+    const newBank = [...blankBank];
+    newBank.splice(bankIndex, 1);
+    setBlankBank(newBank);
+  };
+
+  const handleFillSlotClick = (index: number) => {
+    const word = blankSlots[index];
+    if (!word) return;
+
+    const newSlots = [...blankSlots];
+    newSlots[index] = '';
+    setBlankSlots(newSlots);
+
+    setBlankBank([...blankBank, word]);
+  };
+
+  const handleFillSubmit = () => {
+    const userAns = blankSlots.join('');
+    // For fill-in-the-blank, answer is the concatenated correct words
+    if (userAns === q.answer) {
+      setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
+    } else {
+      setFeedback({ msg: q.explanation, ok: false });
+    }
+  };
+
+  // Navigation
   const handleNext = () => {
     if (qIndex < lesson.questions.length - 1) {
       setQIndex(qIndex + 1);
-      setSelected(null);
-      setFeedback(null);
-      setScrambledSelected([]);
     } else {
       setStep('finish');
     }
   };
 
   const handleRetry = () => {
-    setSelected(null);
     setFeedback(null);
-    setScrambledSelected([]);
+    if (q.type === 'multiple-choice') {
+      setSelected(null);
+    } else if (q.type === 'unscramble') {
+      setScrambledSelected([]);
+    } else if (q.type === 'fill-in-the-blank') {
+       // Reset slots and bank from scratch
+       const numBlanks = q.text.split('（ ）').length - 1;
+       setBlankSlots(Array(numBlanks).fill(''));
+       if (q.options) setBlankBank(shuffleArray([...q.options]));
+    }
   };
 
-  const renderFillInTheBlankText = () => {
-    if (!q) return null;
+  const renderFillInTheBlankArea = () => {
     const parts = q.text.split('（ ）');
-    if (parts.length === 1) return <span className="text-xl md:text-3xl font-bold text-gray-800 font-standard">{q.text}</span>;
-
+    
     return (
-      <div className="text-xl md:text-3xl font-bold text-gray-800 leading-relaxed text-center font-standard">
-        {parts.map((part, i) => (
-          <React.Fragment key={i}>
-            <span>{part}</span>
-            {i < parts.length - 1 && (
-              <span className={`inline-flex items-center justify-center border-b-4 px-2 min-w-[3rem] h-10 md:h-12 text-center transition-colors mx-1 align-middle ${selected ? (selected === q.answer ? 'text-green-600 border-green-400 bg-green-50' : 'text-red-500 border-red-400 bg-red-50') : 'text-sky-600 border-gray-300 bg-gray-100'}`}>
-                 {selected || '?'}
-              </span>
-            )}
-          </React.Fragment>
-        ))}
+      <div className="flex flex-col items-center w-full">
+        {/* Question Text with Slots */}
+        <div className="text-xl md:text-3xl font-bold text-gray-800 leading-relaxed text-center font-standard mb-8">
+          {parts.map((part, i) => (
+            <React.Fragment key={i}>
+              <span>{part}</span>
+              {i < parts.length - 1 && (
+                <button
+                  onClick={() => !feedback && handleFillSlotClick(i)}
+                  className={`inline-flex items-center justify-center border-b-4 md:border-4 rounded-lg md:rounded-xl px-2 mx-1 min-w-[3rem] h-10 md:h-14 text-center transition-all align-middle text-2xl md:text-3xl font-black ${
+                    blankSlots[i] 
+                      ? 'bg-sky-100 border-sky-300 text-sky-700 -translate-y-1 shadow-sm' 
+                      : 'bg-gray-100 border-gray-300'
+                  }`}
+                >
+                  {blankSlots[i]}
+                </button>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Word Bank */}
+        {!feedback && (
+            <div className="bg-sky-50/50 p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 border-dashed border-sky-200 min-h-[80px] w-full flex flex-wrap gap-3 justify-center content-center mb-6">
+                {blankBank.length === 0 && <span className="text-gray-400 text-sm">暂无可用选项</span>}
+                {blankBank.map((word, i) => (
+                <button 
+                    key={`${word}-${i}`} 
+                    onClick={() => handleFillBankClick(word, i)}
+                    disabled={blankSlots.every(s => s !== '')}
+                    className="bg-white w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl text-xl md:text-3xl font-black shadow-sm border-b-4 border-gray-200 hover:border-sky-300 active:scale-95 active:border-b-0 active:translate-y-1 disabled:opacity-50 disabled:active:translate-y-0"
+                >
+                    {word}
+                </button>
+                ))}
+            </div>
+        )}
+
+        {/* Submit Button */}
+        {!feedback && (
+             <button 
+             onClick={handleFillSubmit} 
+             disabled={blankSlots.some(s => s === '')}
+             className="w-full py-3 md:py-5 bg-sky-500 disabled:bg-gray-300 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#0369a1] active:shadow-none active:translate-y-1 transition-all"
+           >
+             选好了！✨
+           </button>
+        )}
       </div>
     );
   };
 
   return (
     <div className="fixed inset-0 z-[100] bg-white flex flex-col font-standard overflow-hidden">
-      {/* Top Bar - Compact */}
+      {/* Top Bar */}
       <div className="px-3 py-2 md:p-4 border-b flex justify-between items-center bg-sky-50 h-14 shrink-0">
         <button onClick={onClose} className="text-2xl md:text-4xl text-sky-400 hover:text-sky-600 w-8">✕</button>
         <div className="flex-1 px-4 md:px-8">
@@ -133,25 +259,27 @@ const LessonViewer: React.FC<{
 
         {step === 'quiz' && (
           <div className="w-full max-w-2xl flex flex-col gap-4 md:gap-8 animate-pop pb-10">
-            {/* Question Card */}
+            {/* Question Card Container */}
             <div className="bg-white p-5 md:p-8 rounded-[1.5rem] md:rounded-[3rem] border-4 border-sky-100 shadow-lg min-h-[10rem] flex flex-col justify-center items-center text-center relative mt-2">
                <span className="absolute -top-3 left-4 bg-sky-500 text-white px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-wider shadow-sm">{q.category}</span>
-               {q.type === 'fill-in-the-blank' ? renderFillInTheBlankText() : <h3 className="text-xl md:text-3xl font-bold text-gray-800 leading-tight font-standard">{q.text}</h3>}
+               
+               {/* Content based on type */}
+               {q.type === 'fill-in-the-blank' ? (
+                   renderFillInTheBlankArea()
+               ) : (
+                   <h3 className="text-xl md:text-3xl font-bold text-gray-800 leading-tight font-standard">{q.text}</h3>
+               )}
             </div>
 
-            {/* Options Area */}
-            {(q.type === 'multiple-choice' || q.type === 'fill-in-the-blank') && (
-              <div className={q.type === 'fill-in-the-blank' ? "flex flex-wrap gap-3 justify-center" : "grid gap-3 md:gap-4"}>
-                {q.options?.map(opt => (
+            {/* Multiple Choice Options */}
+            {q.type === 'multiple-choice' && (
+              <div className="grid gap-3 md:gap-4">
+                {currentOptions.map(opt => (
                   <button
                     key={opt}
                     disabled={!!selected}
-                    onClick={() => handleAnswer(opt)}
-                    className={
-                      q.type === 'fill-in-the-blank' 
-                      ? `w-16 h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl text-xl md:text-3xl font-black border-4 transition-all flex items-center justify-center ${selected === opt ? (opt === q.answer ? 'bg-green-500 text-white border-green-600' : 'bg-red-500 text-white border-red-600') : 'bg-white border-sky-100 hover:border-sky-300 shadow-sm active:scale-95'}`
-                      : `p-4 md:p-6 rounded-xl md:rounded-[2rem] text-lg md:text-2xl font-medium border-4 text-left transition-all font-standard ${selected === opt ? (opt === q.answer ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500') : 'bg-white border-gray-100 hover:border-sky-200 active:bg-sky-50'}`
-                    }
+                    onClick={() => handleMCAnswer(opt)}
+                    className={`p-4 md:p-6 rounded-xl md:rounded-[2rem] text-lg md:text-2xl font-medium border-4 text-left transition-all font-standard ${selected === opt ? (opt === q.answer ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500') : 'bg-white border-gray-100 hover:border-sky-200 active:bg-sky-50'}`}
                   >
                     {opt}
                   </button>
@@ -162,18 +290,16 @@ const LessonViewer: React.FC<{
             {/* Unscramble Area */}
             {q.type === 'unscramble' && (
               <div className="space-y-4 md:space-y-8">
-                {/* Word Bank */}
                 <div className="bg-sky-50/50 p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 border-dashed border-sky-200 min-h-[80px] md:min-h-[100px] flex flex-wrap gap-2 justify-center content-center">
-                   {availableWords.map((w, i) => (
+                   {availableUnscrambleWords.map((w, i) => (
                      <button key={i} onClick={() => setScrambledSelected([...scrambledSelected, w])} className="bg-white px-3 py-2 md:px-5 md:py-3 rounded-lg md:rounded-xl text-lg md:text-2xl font-bold shadow-sm border border-gray-100 hover:bg-sky-50 active:scale-95 font-standard">{w}</button>
                    ))}
                 </div>
-                {/* Answer Area */}
-                <div className="min-h-[80px] md:min-h-[120px] bg-white p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] border-4 border-sky-100 shadow-inner flex flex-wrap gap-2 items-center">
-                   {scrambledSelected.length === 0 && <span className="text-gray-300 text-sm md:text-xl italic mx-auto">点击上方词语组句</span>}
+                <div className="min-h-[80px] md:min-h-[120px] bg-white p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] border-4 border-sky-100 shadow-inner flex flex-wrap gap-2 items-center justify-center">
+                   {scrambledSelected.length === 0 && <span className="text-gray-300 text-sm md:text-xl italic">点击上方词语组句</span>}
                    {scrambledSelected.map((w, i) => (
                      <button key={i} onClick={() => {
-                       if (selected) return;
+                       if (feedback) return;
                        const next = [...scrambledSelected];
                        next.splice(i, 1);
                        setScrambledSelected(next);
@@ -182,7 +308,7 @@ const LessonViewer: React.FC<{
                 </div>
                 {!feedback && (
                   <button 
-                    onClick={() => handleAnswer(scrambledSelected.join(' '))} 
+                    onClick={handleUnscrambleSubmit} 
                     disabled={scrambledSelected.length === 0}
                     className="w-full py-3 md:py-5 bg-sky-500 disabled:bg-gray-300 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#0369a1] active:shadow-none active:translate-y-1 transition-all"
                   >
@@ -223,6 +349,57 @@ const LessonViewer: React.FC<{
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
+  const [editing, setEditing] = useState(false);
+  const [nameVal, setNameVal] = useState(user.name);
+
+  const handleSave = () => {
+    if (nameVal.trim()) {
+      setUser({ ...user, name: nameVal.trim().slice(0, 8) });
+      setEditing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-white p-6 md:p-10 flex flex-col items-center overflow-y-auto animate-fade-in">
+       <button onClick={onClose} className="absolute top-4 left-4 md:top-8 md:left-8 text-3xl md:text-5xl text-gray-300 hover:text-gray-500 transition-colors">✕</button>
+       <div className="mt-10 md:mt-20 w-40 h-40 md:w-56 md:h-56 bg-sky-50 rounded-[2rem] md:rounded-[4rem] flex items-center justify-center text-[5rem] md:text-[8rem] border-[6px] md:border-[10px] border-white shadow-2xl">{user.avatar}</div>
+       
+       {editing ? (
+         <div className="flex gap-2 mt-4 md:mt-8 items-center animate-pop">
+            <input 
+              value={nameVal} 
+              onChange={e => setNameVal(e.target.value)}
+              className="border-4 border-sky-300 rounded-2xl px-4 py-2 text-2xl md:text-4xl font-black text-center w-64 md:w-80 outline-none focus:border-sky-500 bg-white"
+              autoFocus
+              maxLength={8}
+            />
+            <button onClick={handleSave} className="bg-green-500 text-white p-2 md:p-3 rounded-xl md:rounded-2xl shadow-md active:scale-95 text-xl">✓</button>
+         </div>
+       ) : (
+         <h2 onClick={() => { setEditing(true); setNameVal(user.name); }} className="mt-4 md:mt-8 text-3xl md:text-5xl font-black text-sky-800 flex items-center gap-3 cursor-pointer border-b-4 border-transparent hover:border-sky-100 px-4 py-2 rounded-xl transition-all">
+           {user.name} <span className="text-lg md:text-2xl text-sky-300">✎</span>
+         </h2>
+       )}
+
+       <div className="mt-8 md:mt-12 grid grid-cols-2 gap-4 md:gap-6 w-full max-w-lg">
+          <div className="bg-sky-50 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-center border-b-4 border-sky-100">
+             <div className="text-2xl md:text-4xl font-black text-sky-600">{user.courseProgress.main.length}</div>
+             <div className="text-gray-400 font-bold text-xs md:text-sm uppercase">已通关卡</div>
+          </div>
+          <div className="bg-amber-50 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-center border-b-4 border-amber-100">
+             <div className="text-2xl md:text-4xl font-black text-amber-600">{user.stars}</div>
+             <div className="text-gray-400 font-bold text-xs md:text-sm uppercase">持有星星</div>
+          </div>
+       </div>
+       
+       {!editing && (
+         <button onClick={() => { setEditing(true); setNameVal(user.name); }} className="mt-8 md:mt-10 px-6 md:px-10 py-3 md:py-4 bg-sky-100 text-sky-600 rounded-2xl font-black hover:bg-sky-200 transition-colors text-lg md:text-base">修改代号</button>
+       )}
     </div>
   );
 };
@@ -283,7 +460,7 @@ export default function App() {
   useEffect(() => localStorage.setItem('quest_island_v10', JSON.stringify(user)), [user]);
 
   return (
-    <div className="min-h-screen font-standard bg-sky-50 h-full">
+    <div className="min-h-screen font-standard bg-sky-50">
       <Header user={user} setView={setView} />
       
       {view === View.MAP && <IslandMap user={user} onSelectDay={d => { setSelectedDay(d); setView(View.LESSON); }} setView={setView} />}
@@ -335,25 +512,11 @@ export default function App() {
       )}
 
       {view === View.PROFILE && (
-        <div className="fixed inset-0 z-[100] bg-white p-6 md:p-10 flex flex-col items-center overflow-y-auto animate-fade-in">
-           <button onClick={() => setView(View.MAP)} className="absolute top-4 left-4 md:top-8 md:left-8 text-3xl md:text-5xl text-gray-300">✕</button>
-           <div className="mt-10 md:mt-20 w-40 h-40 md:w-56 md:h-56 bg-sky-50 rounded-[2rem] md:rounded-[4rem] flex items-center justify-center text-[5rem] md:text-[8rem] border-[6px] md:border-[10px] border-white shadow-2xl">{user.avatar}</div>
-           <h2 className="mt-4 md:mt-8 text-3xl md:text-5xl font-black text-sky-800">{user.name}</h2>
-           <div className="mt-8 md:mt-12 grid grid-cols-2 gap-4 md:gap-6 w-full max-w-lg">
-              <div className="bg-sky-50 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-center border-b-4 border-sky-100">
-                 <div className="text-2xl md:text-4xl font-black text-sky-600">{user.courseProgress.main.length}</div>
-                 <div className="text-gray-400 font-bold text-xs md:text-sm uppercase">已通关卡</div>
-              </div>
-              <div className="bg-amber-50 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-center border-b-4 border-amber-100">
-                 <div className="text-2xl md:text-4xl font-black text-amber-600">{user.stars}</div>
-                 <div className="text-gray-400 font-bold text-xs md:text-sm uppercase">持有星星</div>
-              </div>
-           </div>
-           <button onClick={() => {
-             const n = prompt('请输入你的探险家代号：', user.name);
-             if (n) setUser({...user, name: n.slice(0, 8)});
-           }} className="mt-8 md:mt-10 px-6 md:px-10 py-3 md:py-4 bg-sky-100 text-sky-600 rounded-2xl font-black hover:bg-sky-200 transition-colors text-lg md:text-base">修改代号</button>
-        </div>
+        <ProfileView 
+          user={user} 
+          setUser={setUser} 
+          onClose={() => setView(View.MAP)} 
+        />
       )}
     </div>
   );
