@@ -83,7 +83,7 @@ export const QUESTION_BANK: Question[] = [
 { id: 'c-w-complex-5', category: 'word', type: 'fill-in-the-blank', text: '我（ ）门口等你，你（ ）把那道题（ ）完。', options: ['在', '再', '做', '作'], answer: '在再做', explanation: '“在”表位置，“再”表重复动作，“做题”表从事活动用做。' },
 { id: 'c-w-complex-6', category: 'word', type: 'fill-in-the-blank', text: '（ ）阳下，（ ）空中飘着（ ）云，（ ）树旁有小朋友在玩。', options: ['太', '天', '白', '大'], answer: '太天白大', explanation: '“太阳”“天空”是固定搭配，“白云”表颜色，“大树”形容体积用大。' },
 { id: 'c-w-complex-7', category: 'word', type: 'fill-in-the-blank', text: '我（ ）有一（ ）笔，笔杆上有一（ ）嫩绿的小花，我（ ）道这是妈妈送的。', options: ['只', '支', '枝', '知'], answer: '只支枝知', explanation: '“只”表数量少，“支”是笔的量词，“枝”修饰枝条类事物，“知道”是固定搭配。' },
-{ id: 'c-w-complex-8', category: 'word', type: 'fill-in-the-blank', text: '小鱼（ ）河（ ）游，小鸟（ ）树（ ）唱，我们（ ）草地上笑。', options: ['在', '里', '上', '下'], answer: '在里在在上', explanation: '“在”表位置，“河里”“树上”“草地上”是方位固定搭配。' },
+{ id: 'c-w-complex-8', category: 'word', type: 'fill-in-the-blank', text: '小鱼（ ）河（ ）游，小鸟（ ）树（ ）唱，我们（ ）草地上笑。', options: ['在', '在','里', '上', '下'], answer: '在里在上在', explanation: '“在”表位置，“河里”“树上”“草地上”是方位固定搭配。' },
 { id: 'c-w-complex-9', category: 'word', type: 'fill-in-the-blank', text: '我用（ ）看风景，用（ ）听歌声，用（ ）写字，用（ ）跑步。', options: ['目', '耳', '手', '足'], answer: '目耳手足', explanation: '目是眼睛管看，耳是耳朵管听，手管写字，足是脚管跑步。' },
 { id: 'c-w-complex-10', category: 'word', type: 'fill-in-the-blank', text: '我（ ）见他拿（ ）一（ ）书，正坐在（ ）石凳上读。', options: ['见', '着', '本', '小'], answer: '见着本小', explanation: '“看见”是固定搭配，“着”表动作持续，“本”是书的量词，“小”修饰石凳。' },
 { id: 'c-w-complex-11', category: 'word', type: 'fill-in-the-blank', text: '农民伯伯（ ）（ ）里种瓜，瓜熟了吃起来真（ ）。', options: ['在', '田', '甜', '天'], answer: '在田甜', explanation: '“在”表位置，“田里”是种瓜的地方，“甜”形容瓜的味道。' },

@@ -1,10 +1,21 @@
 
-import { Course, Lesson, Question } from './types';
+import { Course, Lesson, Question, ParentSettings, QuestionCategory } from './types';
 import { QUESTION_BANK } from './questions';
 
 export const COURSES: Course[] = [
   { id: 'main', title: '20天全能冒险', description: '涵盖数学计算、应用、思维与语文表达。', icon: '🚀' }
 ];
+
+export const DEFAULT_SETTINGS: ParentSettings = {
+  questionCounts: {
+    'basic': 2,
+    'application': 1,
+    'logic': 1,
+    'sentence': 1,
+    'word': 1
+  },
+  shuffleQuestions: true
+};
 
 // 伪随机生成器，根据 seed 确保生成结果的可复现性
 function seededRandom(seed: number) {
@@ -17,10 +28,15 @@ function seededRandom(seed: number) {
  * @param day The day number
  * @param excludeIds List of question IDs that have already been used
  * @param userSeed User specific seed to randomize the question order per user
+ * @param settings Parent settings for question counts and ordering
  */
-export function generateLesson(day: number, excludeIds: string[] = [], userSeed: number = 0): Lesson {
+export function generateLesson(
+  day: number, 
+  excludeIds: string[] = [], 
+  userSeed: number = 0,
+  settings: ParentSettings = DEFAULT_SETTINGS
+): Lesson {
   // Combine day and userSeed to create a unique but consistent seed for this day/user combo
-  // This ensures that different users get different questions for Day 1, but the same user gets consistent behavior on refresh.
   const seed = (day * 123) + userSeed;
   
   const shuffle = (arr: any[], customSeed: number) => {
@@ -37,7 +53,6 @@ export function generateLesson(day: number, excludeIds: string[] = [], userSeed:
     let available = QUESTION_BANK.filter(q => q.category === cat && !excludeIds.includes(q.id));
     
     // Fallback: If we run out of questions in a category, reuse older ones but prioritize unused
-    // This logic ensures we only repeat if absolutely necessary (e.g. strict depletion of bank)
     if (available.length < count) {
       const remainingNeeded = count - available.length;
       const reused = QUESTION_BANK.filter(q => q.category === cat && excludeIds.includes(q.id));
@@ -47,14 +62,16 @@ export function generateLesson(day: number, excludeIds: string[] = [], userSeed:
     return shuffle(available, seed).slice(0, count);
   };
 
-  // 每天的固定配比：2基础 + 1应用 + 1思维 + 1语文句子 + 1语文词语
-  const questions: Question[] = [
-    ...getByCategory('basic', 2),
-    ...getByCategory('application', 1),
-    ...getByCategory('logic', 1),
-    ...getByCategory('sentence', 1),
-    ...getByCategory('word', 1)
-  ];
+  // 根据设置获取题目
+  let questions: Question[] = [];
+  
+  // 遍历配置中的数量
+  (Object.keys(settings.questionCounts) as QuestionCategory[]).forEach(cat => {
+    const count = settings.questionCounts[cat];
+    if (count > 0) {
+      questions = [...questions, ...getByCategory(cat, count)];
+    }
+  });
 
   const icons = ['🌴', '🏹', '💎', '🏰', '🗺️', '🦜', '⛺', '🛶'];
   const icon = icons[day % icons.length];
@@ -71,13 +88,15 @@ export function generateLesson(day: number, excludeIds: string[] = [], userSeed:
   ];
   const story = stories[day % stories.length];
 
-  // Final shuffle of the selected questions so they appear mixed (not grouped by category)
+  // Apply shuffling based on settings
+  const finalQuestions = settings.shuffleQuestions ? shuffle(questions, seed + 999) : questions;
+
   return {
     day,
     title: `第 ${day} 天：奇幻探索`,
     icon,
     story,
-    questions: shuffle(questions, seed + 999),
+    questions: finalQuestions,
     points: 100 + day * 5
   };
 }

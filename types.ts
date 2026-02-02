@@ -28,6 +28,27 @@ export interface Course {
   icon: string;
 }
 
+export interface DailyStats {
+  date: string;
+  timeSpentSeconds: number;
+  mistakes: number;
+  mistakesByCategory: Record<QuestionCategory, number>;
+  totalQuestionsByCategory: Record<QuestionCategory, number>;
+}
+
+export interface LevelStats {
+  day: number;
+  timeSpent: number;
+  mistakesByCat: Record<QuestionCategory, number>;
+  maxCombo: number; // Maximum consecutive correct answers
+  timestamp: number;
+}
+
+export interface ParentSettings {
+  questionCounts: Record<QuestionCategory, number>;
+  shuffleQuestions: boolean; // true = random order, false = ordered by category
+}
+
 export interface UserState {
   name: string;
   avatar: string;
@@ -37,6 +58,15 @@ export interface UserState {
   activeCourseId: string;
   unlockedItems: string[];
   gameSeed: number; // Random seed unique to the user profile
+  
+  // New Statistics Fields
+  streak: number;
+  lastLoginDate: string; // ISO Date String (YYYY-MM-DD)
+  statsHistory: { [date: string]: DailyStats };
+  lastLevelStats?: LevelStats; // Stores stats of the most recently finished level
+
+  // New Settings Fields
+  parentSettings: ParentSettings;
 }
 
 export enum View {

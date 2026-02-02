@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { UserState, View, Lesson, Question } from './types';
-import { COURSES, AVATARS, generateLesson } from './constants';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats } from './types';
+import { COURSES, AVATARS, generateLesson, DEFAULT_SETTINGS } from './constants';
 
 // --- Helper Functions ---
 function shuffleArray<T>(array: T[]): T[] {
@@ -11,6 +11,10 @@ function shuffleArray<T>(array: T[]): T[] {
     [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
   }
   return newArr;
+}
+
+function getTodayStr() {
+  return new Date().toISOString().split('T')[0];
 }
 
 // --- UI Components ---
@@ -38,20 +42,29 @@ const Header: React.FC<{ user: UserState; setView: (v: View) => void }> = ({ use
 
 const LessonViewer: React.FC<{
   lesson: Lesson;
-  onComplete: (points: number, questionIds: string[]) => void;
+  streak: number;
+  onComplete: (points: number, questionIds: string[], stats: LevelStats) => void;
   onClose: () => void;
-}> = ({ lesson, onComplete, onClose }) => {
+}> = ({ lesson, streak, onComplete, onClose }) => {
   const [step, setStep] = useState<'intro' | 'quiz' | 'finish'>('intro');
   const [qIndex, setQIndex] = useState(0);
   const [feedback, setFeedback] = useState<{msg: string, ok: boolean} | null>(null);
   
+  // Stats Tracking
+  const startTimeRef = useRef<number>(Date.now());
+  const [mistakesByCat, setMistakesByCat] = useState<Record<QuestionCategory, number>>({
+    basic: 0, application: 0, logic: 0, sentence: 0, word: 0
+  });
+  const [currentCombo, setCurrentCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
+
   // Standard Multiple Choice State
   const [selected, setSelected] = useState<string | null>(null);
 
   // Unscramble State
   const [scrambledSelected, setScrambledSelected] = useState<string[]>([]);
 
-  // Fill-in-the-blank State (New)
+  // Fill-in-the-blank State
   const [blankSlots, setBlankSlots] = useState<string[]>([]);
   const [blankBank, setBlankBank] = useState<string[]>([]);
 
@@ -74,6 +87,25 @@ const LessonViewer: React.FC<{
     }
   }, [qIndex, lesson]);
 
+  // Record Mistake & Combo Logic
+  const handleCorrect = () => {
+    setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
+    const newCombo = currentCombo + 1;
+    setCurrentCombo(newCombo);
+    if (newCombo > maxCombo) {
+      setMaxCombo(newCombo);
+    }
+  };
+
+  const handleIncorrect = () => {
+    setFeedback({ msg: q.explanation, ok: false });
+    setMistakesByCat(prev => ({
+      ...prev,
+      [q.category]: prev[q.category] + 1
+    }));
+    setCurrentCombo(0);
+  };
+
   // Multiple Choice Shuffle
   const currentOptions = useMemo(() => {
     if (q.type !== 'multiple-choice' || !q.options) return [];
@@ -85,9 +117,9 @@ const LessonViewer: React.FC<{
     if (selected) return;
     setSelected(ans);
     if (ans === q.answer) {
-      setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
+      handleCorrect();
     } else {
-      setFeedback({ msg: q.explanation, ok: false });
+      handleIncorrect();
     }
   };
 
@@ -110,9 +142,9 @@ const LessonViewer: React.FC<{
     const userAns = scrambledSelected.join('');
     const correctAns = q.answer.replace(/\s+/g, ''); // Unscramble answer is usually the full sentence
     if (userAns === correctAns) {
-      setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
+      handleCorrect();
     } else {
-      setFeedback({ msg: q.explanation, ok: false });
+      handleIncorrect();
     }
   };
 
@@ -146,9 +178,9 @@ const LessonViewer: React.FC<{
     const userAns = blankSlots.join('');
     // For fill-in-the-blank, answer is the concatenated correct words
     if (userAns === q.answer) {
-      setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
+      handleCorrect();
     } else {
-      setFeedback({ msg: q.explanation, ok: false });
+      handleIncorrect();
     }
   };
 
@@ -252,8 +284,13 @@ const LessonViewer: React.FC<{
              <div className="bg-sky-50 p-6 md:p-8 rounded-[2rem] border-4 border-sky-100 w-full">
                <h2 className="text-2xl md:text-4xl font-black text-sky-800 mb-2 md:mb-4">{lesson.title}</h2>
                <p className="text-lg md:text-2xl text-gray-600 font-bold leading-relaxed">{lesson.story}</p>
+               {streak > 1 && (
+                  <div className="mt-4 inline-flex items-center gap-2 bg-orange-100 text-orange-600 px-4 py-2 rounded-full font-black animate-bounce">
+                    <span>🔥</span> 连续学习第 {streak} 天！继续加油！
+                  </div>
+               )}
              </div>
-             <button onClick={() => setStep('quiz')} className="w-full py-4 md:py-6 bg-sky-500 text-white rounded-[1.5rem] md:rounded-[2rem] text-2xl md:text-4xl font-black shadow-[0_8px_0_0_#0369a1] active:translate-y-2 active:shadow-none transition-all">出发冒险！</button>
+             <button onClick={() => { setStep('quiz'); startTimeRef.current = Date.now(); }} className="w-full py-4 md:py-6 bg-sky-500 text-white rounded-[1.5rem] md:rounded-[2rem] text-2xl md:text-4xl font-black shadow-[0_8px_0_0_#0369a1] active:translate-y-2 active:shadow-none transition-all">出发冒险！</button>
           </div>
         )}
 
@@ -268,6 +305,13 @@ const LessonViewer: React.FC<{
                    renderFillInTheBlankArea()
                ) : (
                    <h3 className="text-xl md:text-3xl font-bold text-gray-800 leading-tight font-standard">{q.text}</h3>
+               )}
+               
+               {/* Combo Indicator */}
+               {currentCombo > 1 && !feedback && (
+                 <div className="absolute -right-2 -top-2 bg-amber-400 text-white w-12 h-12 rounded-full flex items-center justify-center font-black border-4 border-white shadow-md animate-bounce rotate-12 z-10">
+                    x{currentCombo}
+                 </div>
                )}
             </div>
 
@@ -345,7 +389,16 @@ const LessonViewer: React.FC<{
                <span className="text-gray-500 font-bold block mb-1 md:mb-2 text-sm md:text-base">获得星星</span>
                <span className="text-4xl md:text-6xl font-black text-amber-600">+{lesson.points}</span>
             </div>
-            <button onClick={() => onComplete(lesson.points, lesson.questions.map(q => q.id))} className="w-full py-4 md:py-8 bg-green-500 text-white rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-4xl font-black shadow-[0_8px_0_0_#15803d] active:shadow-none active:translate-y-2">回到地图</button>
+            <button onClick={() => {
+              const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
+              onComplete(lesson.points, lesson.questions.map(q => q.id), { 
+                day: lesson.day,
+                timeSpent, 
+                mistakesByCat, 
+                maxCombo, 
+                timestamp: Date.now() 
+              });
+            }} className="w-full py-4 md:py-8 bg-green-500 text-white rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-4xl font-black shadow-[0_8px_0_0_#15803d] active:shadow-none active:translate-y-2">回到地图</button>
           </div>
         )}
       </div>
@@ -356,49 +409,223 @@ const LessonViewer: React.FC<{
 const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
   const [editing, setEditing] = useState(false);
   const [nameVal, setNameVal] = useState(user.name);
+  const [showParentSettings, setShowParentSettings] = useState(false);
+  const [pin, setPin] = useState('');
+  const [settingsUnlocked, setSettingsUnlocked] = useState(false);
+  const [tempSettings, setTempSettings] = useState<ParentSettings>(user.parentSettings || DEFAULT_SETTINGS);
 
-  const handleSave = () => {
+  const handleSaveName = () => {
     if (nameVal.trim()) {
       setUser({ ...user, name: nameVal.trim().slice(0, 8) });
       setEditing(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-white p-6 md:p-10 flex flex-col items-center overflow-y-auto animate-fade-in">
-       <button onClick={onClose} className="absolute top-4 left-4 md:top-8 md:left-8 text-3xl md:text-5xl text-gray-300 hover:text-gray-500 transition-colors">✕</button>
-       <div className="mt-10 md:mt-20 w-40 h-40 md:w-56 md:h-56 bg-sky-50 rounded-[2rem] md:rounded-[4rem] flex items-center justify-center text-[5rem] md:text-[8rem] border-[6px] md:border-[10px] border-white shadow-2xl">{user.avatar}</div>
-       
-       {editing ? (
-         <div className="flex gap-2 mt-4 md:mt-8 items-center animate-pop">
-            <input 
-              value={nameVal} 
-              onChange={e => setNameVal(e.target.value)}
-              className="border-4 border-sky-300 rounded-2xl px-4 py-2 text-2xl md:text-4xl font-black text-center w-64 md:w-80 outline-none focus:border-sky-500 bg-white"
-              autoFocus
-              maxLength={8}
-            />
-            <button onClick={handleSave} className="bg-green-500 text-white p-2 md:p-3 rounded-xl md:rounded-2xl shadow-md active:scale-95 text-xl">✓</button>
-         </div>
-       ) : (
-         <h2 onClick={() => { setEditing(true); setNameVal(user.name); }} className="mt-4 md:mt-8 text-3xl md:text-5xl font-black text-sky-800 flex items-center gap-3 cursor-pointer border-b-4 border-transparent hover:border-sky-100 px-4 py-2 rounded-xl transition-all">
-           {user.name} <span className="text-lg md:text-2xl text-sky-300">✎</span>
-         </h2>
-       )}
+  const handleUnlockSettings = () => {
+    if (pin === '20180704') {
+      setSettingsUnlocked(true);
+    } else {
+      alert('序列号错误');
+      setPin('');
+    }
+  };
 
-       <div className="mt-8 md:mt-12 grid grid-cols-2 gap-4 md:gap-6 w-full max-w-lg">
-          <div className="bg-sky-50 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-center border-b-4 border-sky-100">
-             <div className="text-2xl md:text-4xl font-black text-sky-600">{user.courseProgress.main.length}</div>
-             <div className="text-gray-400 font-bold text-xs md:text-sm uppercase">已通关卡</div>
-          </div>
-          <div className="bg-amber-50 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-center border-b-4 border-amber-100">
-             <div className="text-2xl md:text-4xl font-black text-amber-600">{user.stars}</div>
-             <div className="text-gray-400 font-bold text-xs md:text-sm uppercase">持有星星</div>
-          </div>
-       </div>
+  const handleSaveSettings = () => {
+    setUser({ ...user, parentSettings: tempSettings });
+    setShowParentSettings(false);
+    setSettingsUnlocked(false);
+    setPin('');
+  };
+
+  // Stats Calculations
+  const totalMistakes = Object.values(user.statsHistory || {}).reduce((acc, day) => acc + day.mistakes, 0);
+  const totalTime = Object.values(user.statsHistory || {}).reduce((acc, day) => acc + day.timeSpentSeconds, 0);
+  const totalHours = Math.floor(totalTime / 3600);
+  const totalMins = Math.floor((totalTime % 3600) / 60);
+
+  // Mistake distribution (All Time)
+  const mistakeDist: Record<string, number> = {};
+  Object.values(user.statsHistory || {}).forEach(day => {
+    Object.entries(day.mistakesByCategory).forEach(([cat, count]) => {
+      mistakeDist[cat] = (mistakeDist[cat] || 0) + count;
+    });
+  });
+  const maxMistakeVal = Math.max(...Object.values(mistakeDist), 1);
+
+  // Last Level Stats
+  const lastLevel = user.lastLevelStats;
+  const lastLevelMins = lastLevel ? Math.floor(lastLevel.timeSpent / 60) : 0;
+  const lastLevelSecs = lastLevel ? lastLevel.timeSpent % 60 : 0;
+  const lastLevelMistakes = lastLevel ? Object.values(lastLevel.mistakesByCat).reduce((a,b) => a+b, 0) : 0;
+  const maxMistakeLevelVal = lastLevel ? Math.max(...Object.values(lastLevel.mistakesByCat), 1) : 1;
+
+  const renderBarChart = (data: Record<string, number>, maxVal: number, colorClass: string, barColorClass: string) => {
+    return (
+      <div className="w-full flex gap-2 h-24 items-end justify-around pb-2">
+          {Object.entries({ basic:'计算', application:'应用', logic:'思维', sentence:'连句', word:'填空' }).map(([cat, label]) => {
+            const val = data[cat] || 0;
+            const heightPct = (val / maxVal) * 100;
+            return (
+              <div key={cat} className="h-full flex flex-col justify-end items-center gap-1 flex-1 group">
+                <div className={`w-full ${barColorClass} rounded-t-lg transition-all duration-500 relative flex items-end justify-center`} style={{ height: `${heightPct}%`, minHeight: val > 0 ? '6px' : '2px' }}>
+                  {val > 0 && <span className="text-[10px] text-gray-500 absolute -top-4 font-bold opacity-0 group-hover:opacity-100">{val}</span>}
+                </div>
+                <span className="text-[10px] text-gray-500 font-bold">{label}</span>
+              </div>
+            )
+          })}
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-white p-6 md:p-10 flex flex-col items-center overflow-y-auto animate-fade-in font-standard">
+       <button onClick={onClose} className="absolute top-4 left-4 md:top-8 md:left-8 text-3xl md:text-5xl text-gray-300 hover:text-gray-500 transition-colors">✕</button>
        
-       {!editing && (
-         <button onClick={() => { setEditing(true); setNameVal(user.name); }} className="mt-8 md:mt-10 px-6 md:px-10 py-3 md:py-4 bg-sky-100 text-sky-600 rounded-2xl font-black hover:bg-sky-200 transition-colors text-lg md:text-base">修改代号</button>
+       {!showParentSettings ? (
+         <>
+          {/* Header */}
+          <div className="mt-10 md:mt-10 w-32 h-32 md:w-40 md:h-40 bg-sky-50 rounded-[2rem] md:rounded-[3rem] flex items-center justify-center text-[4rem] md:text-[5rem] border-[6px] md:border-[8px] border-white shadow-xl">{user.avatar}</div>
+          
+          {/* Name Editor */}
+          {editing ? (
+            <div className="flex gap-2 mt-4 md:mt-4 items-center animate-pop">
+                <input 
+                  value={nameVal} 
+                  onChange={e => setNameVal(e.target.value)}
+                  className="border-4 border-sky-300 rounded-2xl px-4 py-2 text-2xl md:text-3xl font-black text-center w-56 md:w-64 outline-none focus:border-sky-500 bg-white"
+                  autoFocus
+                  maxLength={8}
+                />
+                <button onClick={handleSaveName} className="bg-green-500 text-white p-2 md:p-3 rounded-xl shadow-md active:scale-95 text-xl">✓</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 mt-4 md:mt-4">
+              <h2 onClick={() => { setEditing(true); setNameVal(user.name); }} className="text-3xl md:text-4xl font-black text-sky-800 cursor-pointer border-b-2 border-transparent hover:border-sky-200 transition-all">
+                {user.name} <span className="text-lg text-sky-300 ml-1">✎</span>
+              </h2>
+              <button 
+                onClick={() => setShowParentSettings(true)}
+                className="bg-gray-100 text-gray-500 p-2 rounded-lg text-sm font-bold border-2 border-gray-200 hover:bg-gray-200 active:scale-95"
+              >
+                家长设置 ⚙️
+              </button>
+            </div>
+          )}
+
+          {/* Stats Grid */}
+          <div className="mt-8 md:mt-8 w-full max-w-2xl grid grid-cols-2 gap-4">
+             {/* Total Stats */}
+             <div className="bg-orange-50 p-4 rounded-2xl border-2 border-orange-100 flex flex-col items-center">
+                <span className="text-4xl mb-1">🔥</span>
+                <span className="text-3xl font-black text-orange-600">{user.streak}</span>
+                <span className="text-xs text-orange-400 font-bold uppercase">连续打卡天数</span>
+             </div>
+             <div className="bg-sky-50 p-4 rounded-2xl border-2 border-sky-100 flex flex-col items-center">
+                <span className="text-4xl mb-1">⏳</span>
+                <span className="text-3xl font-black text-sky-600">{totalHours}h {totalMins}m</span>
+                <span className="text-xs text-sky-400 font-bold uppercase">总学习时长</span>
+             </div>
+
+             {/* All Time Mistakes */}
+             <div className="bg-red-50 p-4 rounded-2xl border-2 border-red-100 flex flex-col items-center col-span-2">
+                <div className="w-full flex justify-between items-end mb-2 px-2">
+                   <span className="font-bold text-red-800">总错题分布</span>
+                   <span className="text-xs text-red-400 font-bold">累计: {totalMistakes}</span>
+                </div>
+                {renderBarChart(mistakeDist, maxMistakeVal, 'bg-red-50', 'bg-red-300')}
+             </div>
+
+             {/* Last Level Stats (New Module) */}
+             <div className="col-span-2 mt-2">
+               <h3 className="font-black text-gray-500 text-lg mb-2 pl-2 border-l-4 border-green-400">上一关表现 {lastLevel && <span className="text-sm font-normal text-gray-400">Day {lastLevel.day}</span>}</h3>
+               {lastLevel ? (
+                 <div className="bg-green-50 p-4 rounded-2xl border-2 border-green-100 grid grid-cols-2 gap-4">
+                    <div className="flex flex-col items-center justify-center p-2 bg-white/50 rounded-xl">
+                       <span className="text-xs text-green-600 font-bold mb-1">通关用时</span>
+                       <span className="text-2xl font-black text-green-700">{lastLevelMins}分{lastLevelSecs}秒</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-2 bg-white/50 rounded-xl">
+                       <span className="text-xs text-amber-600 font-bold mb-1">最强连击</span>
+                       <span className="text-2xl font-black text-amber-600">x{lastLevel.maxCombo}</span>
+                    </div>
+                    
+                    <div className="col-span-2 mt-2">
+                      <div className="w-full flex justify-between items-end mb-2 px-1">
+                        <span className="text-xs font-bold text-green-800">本关错题分布</span>
+                        <span className="text-[10px] text-green-600 font-bold">错题数: {lastLevelMistakes}</span>
+                      </div>
+                      {renderBarChart(lastLevel.mistakesByCat, maxMistakeLevelVal, 'bg-green-50', 'bg-green-300')}
+                    </div>
+                 </div>
+               ) : (
+                 <div className="bg-gray-50 p-6 rounded-2xl border-2 border-dashed border-gray-200 text-center text-gray-400 font-bold">
+                    还没有完成过关卡哦，快去挑战吧！
+                 </div>
+               )}
+             </div>
+          </div>
+         </>
+       ) : (
+         /* Parent Settings Modal Content */
+         <div className="mt-10 md:mt-20 w-full max-w-xl animate-pop">
+           <h2 className="text-3xl font-black text-gray-700 mb-6 text-center">家长设置 ⚙️</h2>
+           {!settingsUnlocked ? (
+             <div className="flex flex-col items-center gap-4 bg-gray-50 p-8 rounded-3xl border-2 border-gray-100">
+               <p className="text-gray-500 font-medium">请输入序列号解锁设置</p>
+               <input 
+                 type="password" 
+                 value={pin} 
+                 onChange={e => setPin(e.target.value)} 
+                 placeholder="输入序列号"
+                 className="w-full p-4 rounded-xl border-2 border-gray-300 text-center text-2xl tracking-widest outline-none focus:border-sky-500"
+               />
+               <div className="flex gap-4 w-full">
+                 <button onClick={() => setShowParentSettings(false)} className="flex-1 py-3 bg-gray-200 text-gray-600 rounded-xl font-bold">返回</button>
+                 <button onClick={handleUnlockSettings} className="flex-1 py-3 bg-sky-500 text-white rounded-xl font-bold">解锁</button>
+               </div>
+             </div>
+           ) : (
+             <div className="bg-white border-2 border-gray-100 p-6 md:p-8 rounded-3xl shadow-sm flex flex-col gap-6">
+                <div>
+                  <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">每日题量配置</h3>
+                  <div className="space-y-4">
+                    {(Object.keys(tempSettings.questionCounts) as QuestionCategory[]).map(cat => {
+                      const labelMap: any = { basic:'数学计算', application:'数学应用', logic:'数学思维', sentence:'语文连句', word:'语文填空' };
+                      return (
+                        <div key={cat} className="flex items-center justify-between">
+                          <span className="font-medium text-gray-600">{labelMap[cat]}</span>
+                          <div className="flex items-center gap-3">
+                            <button onClick={() => setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.max(0, prev.questionCounts[cat] - 1)}}))} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">-</button>
+                            <span className="w-6 text-center font-bold text-lg">{tempSettings.questionCounts[cat]}</span>
+                            <button onClick={() => setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.min(10, prev.questionCounts[cat] + 1)}}))} className="w-8 h-8 rounded-full bg-sky-100 hover:bg-sky-200 font-bold text-sky-600">+</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">出题模式</h3>
+                  <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl">
+                    <span className="font-medium text-gray-600">题目乱序</span>
+                    <button 
+                      onClick={() => setTempSettings(prev => ({...prev, shuffleQuestions: !prev.shuffleQuestions}))}
+                      className={`w-14 h-8 rounded-full p-1 transition-colors ${tempSettings.shuffleQuestions ? 'bg-green-500' : 'bg-gray-300'}`}
+                    >
+                      <div className={`w-6 h-6 bg-white rounded-full shadow-sm transform transition-transform ${tempSettings.shuffleQuestions ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                   <button onClick={() => setShowParentSettings(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold">取消</button>
+                   <button onClick={handleSaveSettings} className="flex-1 py-3 bg-green-500 text-white rounded-xl font-bold shadow-md active:translate-y-1">保存设置</button>
+                </div>
+             </div>
+           )}
+         </div>
        )}
     </div>
   );
@@ -413,7 +640,8 @@ const IslandMap: React.FC<{ user: UserState; onSelectDay: (d: number) => void; s
       {days.map(d => {
         const isLocked = d > finished.length + 1;
         const isDone = finished.includes(d);
-        const l = generateLesson(d, [], user.gameSeed); 
+        // Use settings from user state
+        const l = generateLesson(d, [], user.gameSeed, user.parentSettings); 
         return (
           <div key={d} onClick={() => !isLocked && onSelectDay(d)} className={`relative p-3 md:p-6 rounded-2xl md:rounded-[3rem] border-b-4 md:border-b-[12px] flex flex-col items-center gap-1 md:gap-2 cursor-pointer transition-all ${isLocked ? 'bg-gray-100 grayscale opacity-40 border-gray-300' : isDone ? 'bg-green-50 border-green-300 scale-95 opacity-80' : 'bg-white border-sky-100 active:scale-95 md:hover:scale-105 shadow-md md:shadow-xl island-float'}`}>
             <div className="text-4xl md:text-6xl mb-1 md:mb-2">{l.icon}</div>
@@ -439,7 +667,18 @@ export default function App() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [user, setUser] = useState<UserState>(() => {
     const s = localStorage.getItem('quest_island_v10');
-    return s ? JSON.parse(s) : { 
+    if (s) {
+      const parsed = JSON.parse(s);
+      // Backfill new properties for existing users
+      return {
+        ...parsed,
+        streak: parsed.streak || 0,
+        lastLoginDate: parsed.lastLoginDate || '',
+        statsHistory: parsed.statsHistory || {},
+        parentSettings: parsed.parentSettings || DEFAULT_SETTINGS
+      };
+    }
+    return { 
       name: '超级探险家', 
       avatar: '🐱', 
       stars: 0, 
@@ -447,15 +686,38 @@ export default function App() {
       usedQuestionIds: [], 
       activeCourseId: 'main', 
       unlockedItems: ['cat'],
-      gameSeed: Math.floor(Math.random() * 1000000)
+      gameSeed: Math.floor(Math.random() * 1000000),
+      streak: 0,
+      lastLoginDate: '',
+      statsHistory: {},
+      parentSettings: DEFAULT_SETTINGS
     };
   });
 
+  // Streak Calculation Logic
   useEffect(() => {
-    if (!user.gameSeed) {
-      setUser(u => ({ ...u, gameSeed: Math.floor(Math.random() * 1000000) }));
+    const today = getTodayStr();
+    if (user.lastLoginDate !== today) {
+      let newStreak = user.streak;
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      if (user.lastLoginDate === yesterdayStr) {
+        newStreak += 1; // Consecutive day
+      } else if (user.lastLoginDate < yesterdayStr) {
+        newStreak = 1; // Break in streak or first time
+      } else if (user.streak === 0) {
+        newStreak = 1; // First day ever
+      }
+      
+      setUser(prev => ({
+        ...prev,
+        lastLoginDate: today,
+        streak: newStreak
+      }));
     }
-  }, []);
+  }, []); // Only run on mount to check streak
 
   useEffect(() => localStorage.setItem('quest_island_v10', JSON.stringify(user)), [user]);
 
@@ -467,13 +729,43 @@ export default function App() {
       
       {view === View.LESSON && selectedDay && (
         <LessonViewer 
-          lesson={generateLesson(selectedDay, user.usedQuestionIds, user.gameSeed)} 
-          onComplete={(p, qIds) => {
+          lesson={generateLesson(selectedDay, user.usedQuestionIds, user.gameSeed, user.parentSettings)} 
+          streak={user.streak}
+          onComplete={(p, qIds, lessonStats) => {
+            const today = getTodayStr();
+            const currentStats = user.statsHistory[today] || {
+              date: today,
+              timeSpentSeconds: 0,
+              mistakes: 0,
+              mistakesByCategory: { basic: 0, application: 0, logic: 0, sentence: 0, word: 0 },
+              totalQuestionsByCategory: { basic: 0, application: 0, logic: 0, sentence: 0, word: 0 }
+            };
+
+            // Merge new stats
+            const updatedStats = {
+              ...currentStats,
+              timeSpentSeconds: currentStats.timeSpentSeconds + lessonStats.timeSpent,
+              mistakes: currentStats.mistakes + Object.values(lessonStats.mistakesByCat).reduce((a, b) => a + b, 0),
+              mistakesByCategory: {
+                 ...currentStats.mistakesByCategory,
+                 basic: currentStats.mistakesByCategory.basic + lessonStats.mistakesByCat.basic,
+                 application: currentStats.mistakesByCategory.application + lessonStats.mistakesByCat.application,
+                 logic: currentStats.mistakesByCategory.logic + lessonStats.mistakesByCat.logic,
+                 sentence: currentStats.mistakesByCategory.sentence + lessonStats.mistakesByCat.sentence,
+                 word: currentStats.mistakesByCategory.word + lessonStats.mistakesByCat.word,
+              }
+            };
+
             setUser(prev => ({
               ...prev,
               stars: prev.stars + p,
               usedQuestionIds: Array.from(new Set([...prev.usedQuestionIds, ...qIds])),
-              courseProgress: { ...prev.courseProgress, [prev.activeCourseId]: Array.from(new Set([...(prev.courseProgress[prev.activeCourseId] || []), selectedDay])) }
+              courseProgress: { ...prev.courseProgress, [prev.activeCourseId]: Array.from(new Set([...(prev.courseProgress[prev.activeCourseId] || []), selectedDay])) },
+              statsHistory: {
+                ...prev.statsHistory,
+                [today]: updatedStats
+              },
+              lastLevelStats: lessonStats
             }));
             setView(View.MAP);
           }}
