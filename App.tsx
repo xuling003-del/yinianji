@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats, AchievementCard } from './types';
 import { COURSES, AVATARS, generateLesson, DEFAULT_SETTINGS, ACHIEVEMENT_CARDS } from './constants';
@@ -438,19 +437,22 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   };
 
   // Stats Calculations
-  const totalMistakes = Object.values(user.statsHistory || {}).reduce((acc, day) => acc + day.mistakes, 0);
-  const totalTime = Object.values(user.statsHistory || {}).reduce((acc, day) => acc + day.timeSpentSeconds, 0);
+  // Fix: Explicitly cast Object.values result to DailyStats[] to avoid unknown type inference issues
+  const historyValues = Object.values(user.statsHistory || {}) as DailyStats[];
+  const totalMistakes = historyValues.reduce((acc, day) => acc + day.mistakes, 0);
+  const totalTime = historyValues.reduce((acc, day) => acc + day.timeSpentSeconds, 0);
   const totalHours = Math.floor(totalTime / 3600);
   const totalMins = Math.floor((totalTime % 3600) / 60);
 
   // Mistake distribution (All Time)
   const mistakeDist: Record<string, number> = {};
-  Object.values(user.statsHistory || {}).forEach(day => {
+  historyValues.forEach(day => {
     Object.entries(day.mistakesByCategory).forEach(([cat, count]) => {
       mistakeDist[cat] = (mistakeDist[cat] || 0) + count;
     });
   });
-  const maxMistakeVal = Math.max(...Object.values(mistakeDist), 1);
+  // Fix: Cast Object.values result to number[] for Math.max
+  const maxMistakeVal = Math.max(...(Object.values(mistakeDist) as number[]), 1);
 
   // Last Level Stats
   const lastLevel = user.lastLevelStats;
@@ -591,7 +593,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                   <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">每日题量配置</h3>
                   <div className="space-y-4">
                     {(Object.keys(tempSettings.questionCounts) as QuestionCategory[]).map(cat => {
-                      const labelMap: any = { basic:'数学计算', application:'数学应用', logic:'数学思维', sentence:'语文连句', word:'语文填空' };
+                      const labelMap: any = { basic:'数学计算', application:'数学应用', logic:'数学思维', sentence:'语文连句', word:'填空' };
                       return (
                         <div key={cat} className="flex items-center justify-between">
                           <span className="font-medium text-gray-600">{labelMap[cat]}</span>
@@ -839,9 +841,10 @@ export default function App() {
         <LessonViewer 
           lesson={generateLesson(selectedDay, user.usedQuestionIds, user.gameSeed, user.parentSettings)} 
           streak={user.streak}
-          onComplete={(p, qIds, lessonStats) => {
+          // Fix: Explicitly type callback arguments to ensure correct arithmetic operations
+          onComplete={(p, qIds, lessonStats: LevelStats) => {
             const today = getTodayStr();
-            const currentStats = user.statsHistory[today] || {
+            const currentStats: DailyStats = user.statsHistory[today] || {
               date: today,
               timeSpentSeconds: 0,
               mistakes: 0,
@@ -852,7 +855,7 @@ export default function App() {
             const mistakesCount = Object.values(lessonStats.mistakesByCat).reduce((a, b) => a + b, 0);
 
             // Merge new stats
-            const updatedStats = {
+            const updatedStats: DailyStats = {
               ...currentStats,
               timeSpentSeconds: currentStats.timeSpentSeconds + lessonStats.timeSpent,
               mistakes: currentStats.mistakes + mistakesCount,
