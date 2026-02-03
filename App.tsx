@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats, AchievementCard } from './types';
 import { COURSES, AVATARS, generateLesson, DEFAULT_SETTINGS, ACHIEVEMENT_CARDS } from './constants';
+import { playClick, playCorrect, playIncorrect, playFanfare, playUnlock } from './sound';
 
 // --- Helper Functions ---
 function shuffleArray<T>(array: T[]): T[] {
@@ -20,7 +22,7 @@ function getTodayStr() {
 
 const Header: React.FC<{ user: UserState; setView: (v: View) => void }> = ({ user, setView }) => (
   <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-sm z-50 px-3 py-2 md:p-4 flex justify-between items-center border-b-2 border-sky-50 h-14 md:h-auto">
-    <div className="flex items-center gap-2 md:gap-3 cursor-pointer" onClick={() => setView(View.MAP)}>
+    <div className="flex items-center gap-2 md:gap-3 cursor-pointer" onClick={() => { playClick(); setView(View.MAP); }}>
       <span className="text-2xl md:text-4xl">🏝️</span>
       <div>
         <h1 className="text-lg md:text-xl font-black text-sky-600 leading-tight">奇幻岛</h1>
@@ -32,7 +34,7 @@ const Header: React.FC<{ user: UserState; setView: (v: View) => void }> = ({ use
         <span className="text-sm md:text-xl">⭐</span>
         <span className="font-black text-amber-600 tabular-nums text-sm md:text-base">{user.stars}</span>
       </div>
-      <button onClick={() => setView(View.PROFILE)} className="w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white border-2 border-sky-100 flex items-center justify-center text-xl md:text-3xl shadow-sm active:scale-95 transition-transform">
+      <button onClick={() => { playClick(); setView(View.PROFILE); }} className="w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white border-2 border-sky-100 flex items-center justify-center text-xl md:text-3xl shadow-sm active:scale-95 transition-transform">
         {user.avatar}
       </button>
     </div>
@@ -88,6 +90,7 @@ const LessonViewer: React.FC<{
 
   // Record Mistake & Combo Logic
   const handleCorrect = () => {
+    playCorrect();
     setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
     const newCombo = currentCombo + 1;
     setCurrentCombo(newCombo);
@@ -97,6 +100,7 @@ const LessonViewer: React.FC<{
   };
 
   const handleIncorrect = () => {
+    playIncorrect();
     setFeedback({ msg: q.explanation, ok: false });
     setMistakesByCat(prev => ({
       ...prev,
@@ -114,6 +118,7 @@ const LessonViewer: React.FC<{
   // Handle MC Answer
   const handleMCAnswer = (ans: string) => {
     if (selected) return;
+    playClick();
     setSelected(ans);
     if (ans === q.answer) {
       handleCorrect();
@@ -138,6 +143,7 @@ const LessonViewer: React.FC<{
   }, [scrambledSelected, unscrambleWordBank]);
 
   const handleUnscrambleSubmit = () => {
+    playClick();
     const userAns = scrambledSelected.join('');
     const correctAns = q.answer.replace(/\s+/g, ''); // Unscramble answer is usually the full sentence
     if (userAns === correctAns) {
@@ -149,6 +155,7 @@ const LessonViewer: React.FC<{
 
   // Handle Fill-in-the-blank Logic
   const handleFillBankClick = (word: string, bankIndex: number) => {
+    playClick();
     // Find first empty slot
     const emptyIndex = blankSlots.findIndex(s => s === '');
     if (emptyIndex === -1) return; // No empty slots
@@ -163,6 +170,7 @@ const LessonViewer: React.FC<{
   };
 
   const handleFillSlotClick = (index: number) => {
+    playClick();
     const word = blankSlots[index];
     if (!word) return;
 
@@ -174,6 +182,7 @@ const LessonViewer: React.FC<{
   };
 
   const handleFillSubmit = () => {
+    playClick();
     const userAns = blankSlots.join('');
     // For fill-in-the-blank, answer is the concatenated correct words
     if (userAns === q.answer) {
@@ -185,14 +194,17 @@ const LessonViewer: React.FC<{
 
   // Navigation
   const handleNext = () => {
+    playClick();
     if (qIndex < lesson.questions.length - 1) {
       setQIndex(qIndex + 1);
     } else {
+      playFanfare();
       setStep('finish');
     }
   };
 
   const handleRetry = () => {
+    playClick();
     setFeedback(null);
     if (q.type === 'multiple-choice') {
       setSelected(null);
@@ -267,7 +279,7 @@ const LessonViewer: React.FC<{
     <div className="fixed inset-0 z-[100] bg-white flex flex-col font-standard overflow-hidden">
       {/* Top Bar */}
       <div className="px-3 py-2 md:p-4 border-b flex justify-between items-center bg-sky-50 h-14 shrink-0">
-        <button onClick={onClose} className="text-2xl md:text-4xl text-sky-400 hover:text-sky-600 w-8">✕</button>
+        <button onClick={() => { playClick(); onClose(); }} className="text-2xl md:text-4xl text-sky-400 hover:text-sky-600 w-8">✕</button>
         <div className="flex-1 px-4 md:px-8">
            <div className="h-3 md:h-4 bg-white rounded-full overflow-hidden border">
               <div className="h-full bg-sky-400 transition-all duration-500" style={{ width: `${((qIndex + 1) / lesson.questions.length) * 100}%` }}></div>
@@ -289,7 +301,7 @@ const LessonViewer: React.FC<{
                   </div>
                )}
              </div>
-             <button onClick={() => { setStep('quiz'); startTimeRef.current = Date.now(); }} className="w-full py-4 md:py-6 bg-sky-500 text-white rounded-[1.5rem] md:rounded-[2rem] text-2xl md:text-4xl font-black shadow-[0_8px_0_0_#0369a1] active:translate-y-2 active:shadow-none transition-all">出发冒险！</button>
+             <button onClick={() => { playClick(); setStep('quiz'); startTimeRef.current = Date.now(); }} className="w-full py-4 md:py-6 bg-sky-500 text-white rounded-[1.5rem] md:rounded-[2rem] text-2xl md:text-4xl font-black shadow-[0_8px_0_0_#0369a1] active:translate-y-2 active:shadow-none transition-all">出发冒险！</button>
           </div>
         )}
 
@@ -335,7 +347,7 @@ const LessonViewer: React.FC<{
               <div className="space-y-4 md:space-y-8">
                 <div className="bg-sky-50/50 p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 border-dashed border-sky-200 min-h-[80px] md:min-h-[100px] flex flex-wrap gap-2 justify-center content-center">
                    {availableUnscrambleWords.map((w, i) => (
-                     <button key={i} onClick={() => setScrambledSelected([...scrambledSelected, w])} className="bg-white px-3 py-2 md:px-5 md:py-3 rounded-lg md:rounded-xl text-lg md:text-2xl font-bold shadow-sm border border-gray-100 hover:bg-sky-50 active:scale-95 font-standard">{w}</button>
+                     <button key={i} onClick={() => { playClick(); setScrambledSelected([...scrambledSelected, w]); }} className="bg-white px-3 py-2 md:px-5 md:py-3 rounded-lg md:rounded-xl text-lg md:text-2xl font-bold shadow-sm border border-gray-100 hover:bg-sky-50 active:scale-95 font-standard">{w}</button>
                    ))}
                 </div>
                 <div className="min-h-[80px] md:min-h-[120px] bg-white p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] border-4 border-sky-100 shadow-inner flex flex-wrap gap-2 items-center justify-center">
@@ -343,6 +355,7 @@ const LessonViewer: React.FC<{
                    {scrambledSelected.map((w, i) => (
                      <button key={i} onClick={() => {
                        if (feedback) return;
+                       playClick();
                        const next = [...scrambledSelected];
                        next.splice(i, 1);
                        setScrambledSelected(next);
@@ -389,6 +402,7 @@ const LessonViewer: React.FC<{
                <span className="text-4xl md:text-6xl font-black text-amber-600">+{lesson.points}</span>
             </div>
             <button onClick={() => {
+              playClick();
               const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
               onComplete(lesson.points, lesson.questions.map(q => q.id), { 
                 day: lesson.day,
@@ -417,11 +431,13 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
     if (nameVal.trim()) {
       setUser({ ...user, name: nameVal.trim().slice(0, 8) });
       setEditing(false);
+      playClick();
     }
   };
 
   const handleUnlockSettings = () => {
     if (pin === '20180704') {
+      playUnlock();
       setSettingsUnlocked(true);
     } else {
       alert('序列号错误');
@@ -430,6 +446,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   };
 
   const handleSaveSettings = () => {
+    playClick();
     setUser({ ...user, parentSettings: tempSettings });
     setShowParentSettings(false);
     setSettingsUnlocked(false);
@@ -458,8 +475,8 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   const lastLevel = user.lastLevelStats;
   const lastLevelMins = lastLevel ? Math.floor(lastLevel.timeSpent / 60) : 0;
   const lastLevelSecs = lastLevel ? lastLevel.timeSpent % 60 : 0;
-  const lastLevelMistakes = lastLevel ? Object.values(lastLevel.mistakesByCat).reduce((a,b) => a+b, 0) : 0;
-  const maxMistakeLevelVal = lastLevel ? Math.max(...Object.values(lastLevel.mistakesByCat), 1) : 1;
+  const lastLevelMistakes = lastLevel ? (Object.values(lastLevel.mistakesByCat) as number[]).reduce((a,b) => a+b, 0) : 0;
+  const maxMistakeLevelVal = lastLevel ? Math.max(...(Object.values(lastLevel.mistakesByCat) as number[]), 1) : 1;
 
   const renderBarChart = (data: Record<string, number>, maxVal: number, colorClass: string, barColorClass: string) => {
     return (
@@ -482,7 +499,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
 
   return (
     <div className="fixed inset-0 z-[100] bg-white p-6 md:p-10 flex flex-col items-center overflow-y-auto animate-fade-in font-standard">
-       <button onClick={onClose} className="absolute top-4 left-4 md:top-8 md:left-8 text-3xl md:text-5xl text-gray-300 hover:text-gray-500 transition-colors">✕</button>
+       <button onClick={() => { playClick(); onClose(); }} className="absolute top-4 left-4 md:top-8 md:left-8 text-3xl md:text-5xl text-gray-300 hover:text-gray-500 transition-colors">✕</button>
        
        {!showParentSettings ? (
          <>
@@ -503,11 +520,11 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
             </div>
           ) : (
             <div className="flex items-center gap-3 mt-4 md:mt-4">
-              <h2 onClick={() => { setEditing(true); setNameVal(user.name); }} className="text-3xl md:text-4xl font-black text-sky-800 cursor-pointer border-b-2 border-transparent hover:border-sky-200 transition-all">
+              <h2 onClick={() => { playClick(); setEditing(true); setNameVal(user.name); }} className="text-3xl md:text-4xl font-black text-sky-800 cursor-pointer border-b-2 border-transparent hover:border-sky-200 transition-all">
                 {user.name} <span className="text-lg text-sky-300 ml-1">✎</span>
               </h2>
               <button 
-                onClick={() => setShowParentSettings(true)}
+                onClick={() => { playClick(); setShowParentSettings(true); }}
                 className="bg-gray-100 text-gray-500 p-2 rounded-lg text-sm font-bold border-2 border-gray-200 hover:bg-gray-200 active:scale-95"
               >
                 家长设置 ⚙️
@@ -583,7 +600,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                  className="w-full p-4 rounded-xl border-2 border-gray-300 text-center text-2xl tracking-widest outline-none focus:border-sky-500"
                />
                <div className="flex gap-4 w-full">
-                 <button onClick={() => setShowParentSettings(false)} className="flex-1 py-3 bg-gray-200 text-gray-600 rounded-xl font-bold">返回</button>
+                 <button onClick={() => { playClick(); setShowParentSettings(false); }} className="flex-1 py-3 bg-gray-200 text-gray-600 rounded-xl font-bold">返回</button>
                  <button onClick={handleUnlockSettings} className="flex-1 py-3 bg-sky-500 text-white rounded-xl font-bold">解锁</button>
                </div>
              </div>
@@ -598,9 +615,9 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                         <div key={cat} className="flex items-center justify-between">
                           <span className="font-medium text-gray-600">{labelMap[cat]}</span>
                           <div className="flex items-center gap-3">
-                            <button onClick={() => setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.max(0, prev.questionCounts[cat] - 1)}}))} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">-</button>
+                            <button onClick={() => { playClick(); setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.max(0, prev.questionCounts[cat] - 1)}})) }} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">-</button>
                             <span className="w-6 text-center font-bold text-lg">{tempSettings.questionCounts[cat]}</span>
-                            <button onClick={() => setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.min(10, prev.questionCounts[cat] + 1)}}))} className="w-8 h-8 rounded-full bg-sky-100 hover:bg-sky-200 font-bold text-sky-600">+</button>
+                            <button onClick={() => { playClick(); setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.min(10, prev.questionCounts[cat] + 1)}})) }} className="w-8 h-8 rounded-full bg-sky-100 hover:bg-sky-200 font-bold text-sky-600">+</button>
                           </div>
                         </div>
                       )
@@ -613,7 +630,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                   <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl">
                     <span className="font-medium text-gray-600">题目乱序</span>
                     <button 
-                      onClick={() => setTempSettings(prev => ({...prev, shuffleQuestions: !prev.shuffleQuestions}))}
+                      onClick={() => { playClick(); setTempSettings(prev => ({...prev, shuffleQuestions: !prev.shuffleQuestions})) }}
                       className={`w-14 h-8 rounded-full p-1 transition-colors ${tempSettings.shuffleQuestions ? 'bg-green-500' : 'bg-gray-300'}`}
                     >
                       <div className={`w-6 h-6 bg-white rounded-full shadow-sm transform transition-transform ${tempSettings.shuffleQuestions ? 'translate-x-6' : 'translate-x-0'}`}></div>
@@ -622,7 +639,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                 </div>
 
                 <div className="flex gap-4 pt-4">
-                   <button onClick={() => setShowParentSettings(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold">取消</button>
+                   <button onClick={() => { playClick(); setShowParentSettings(false); }} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold">取消</button>
                    <button onClick={handleSaveSettings} className="flex-1 py-3 bg-green-500 text-white rounded-xl font-bold shadow-md active:translate-y-1">保存设置</button>
                 </div>
              </div>
@@ -643,7 +660,7 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
     <div className="fixed inset-0 z-[100] bg-sky-50 flex flex-col items-center overflow-hidden font-standard">
       {/* Top Bar */}
        <div className="w-full p-4 flex justify-between items-center z-10 bg-sky-50/90 backdrop-blur-sm">
-         <button onClick={onClose} className="text-3xl md:text-5xl text-gray-300 hover:text-gray-500">✕</button>
+         <button onClick={() => { playClick(); onClose(); }} className="text-3xl md:text-5xl text-gray-300 hover:text-gray-500">✕</button>
          <h2 className="text-2xl md:text-4xl font-black text-amber-600 font-playful">✨ 宝藏店 ✨</h2>
          <div className="w-8"></div>
        </div>
@@ -651,13 +668,13 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
        {/* Tabs */}
        <div className="flex gap-4 mb-4 md:mb-6 p-1 bg-white rounded-xl border-2 border-amber-100 shadow-sm">
           <button 
-            onClick={() => setActiveTab('cards')} 
+            onClick={() => { playClick(); setActiveTab('cards'); }}
             className={`px-4 py-2 rounded-lg font-bold transition-all ${activeTab === 'cards' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
           >
             荣誉卡片
           </button>
           <button 
-            onClick={() => setActiveTab('avatar')} 
+            onClick={() => { playClick(); setActiveTab('avatar'); }}
             className={`px-4 py-2 rounded-lg font-bold transition-all ${activeTab === 'avatar' ? 'bg-sky-100 text-sky-600' : 'text-gray-400'}`}
           >
             魔法皮肤
@@ -676,7 +693,12 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
                   return (
                     <div 
                       key={card.id} 
-                      onClick={() => unlocked && setSelectedCardId(card.id)}
+                      onClick={() => {
+                        if (unlocked) {
+                          playClick();
+                          setSelectedCardId(card.id);
+                        }
+                      }}
                       className={`relative aspect-[3/4] rounded-2xl border-4 transition-all duration-300 flex flex-col items-center justify-center p-2 text-center group ${unlocked ? 'bg-white border-white shadow-xl cursor-pointer hover:scale-105 rotate-0' : 'bg-gray-200 border-gray-300 opacity-80 cursor-not-allowed grayscale'}`}
                     >
                        <div className="text-4xl md:text-6xl mb-2">{unlocked ? card.icon : '🔒'}</div>
@@ -705,8 +727,10 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
                           disabled={owned && user.avatar === a.icon}
                           onClick={() => {
                             if (owned) {
+                              playClick();
                               setUser({...user, avatar: a.icon});
                             } else if (user.stars >= a.cost) {
+                              playUnlock();
                               setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
                             }
                           }}
@@ -751,7 +775,7 @@ const IslandMap: React.FC<{ user: UserState; onSelectDay: (d: number) => void; s
         // Use settings from user state
         const l = generateLesson(d, [], user.gameSeed, user.parentSettings); 
         return (
-          <div key={d} onClick={() => !isLocked && onSelectDay(d)} className={`relative p-3 md:p-6 rounded-2xl md:rounded-[3rem] border-b-4 md:border-b-[12px] flex flex-col items-center gap-1 md:gap-2 cursor-pointer transition-all ${isLocked ? 'bg-gray-100 grayscale opacity-40 border-gray-300' : isDone ? 'bg-green-50 border-green-300 scale-95 opacity-80' : 'bg-white border-sky-100 active:scale-95 md:hover:scale-105 shadow-md md:shadow-xl island-float'}`}>
+          <div key={d} onClick={() => { if(!isLocked) { playClick(); onSelectDay(d); } }} className={`relative p-3 md:p-6 rounded-2xl md:rounded-[3rem] border-b-4 md:border-b-[12px] flex flex-col items-center gap-1 md:gap-2 cursor-pointer transition-all ${isLocked ? 'bg-gray-100 grayscale opacity-40 border-gray-300' : isDone ? 'bg-green-50 border-green-300 scale-95 opacity-80' : 'bg-white border-sky-100 active:scale-95 md:hover:scale-105 shadow-md md:shadow-xl island-float'}`}>
             <div className="text-4xl md:text-6xl mb-1 md:mb-2">{l.icon}</div>
             <div className="text-center w-full">
                <span className="text-[10px] font-black text-sky-300 block">DAY {d}</span>
@@ -762,7 +786,7 @@ const IslandMap: React.FC<{ user: UserState; onSelectDay: (d: number) => void; s
           </div>
         );
       })}
-      <div onClick={() => setView(View.STORE)} className="p-3 md:p-6 rounded-2xl md:rounded-[3rem] bg-amber-50 border-b-4 md:border-b-[12px] border-amber-300 shadow-md md:shadow-xl flex flex-col items-center justify-center gap-1 md:gap-2 cursor-pointer active:scale-95 md:hover:scale-110 island-float">
+      <div onClick={() => { playClick(); setView(View.STORE); }} className="p-3 md:p-6 rounded-2xl md:rounded-[3rem] bg-amber-50 border-b-4 md:border-b-[12px] border-amber-300 shadow-md md:shadow-xl flex flex-col items-center justify-center gap-1 md:gap-2 cursor-pointer active:scale-95 md:hover:scale-110 island-float">
         <div className="text-4xl md:text-6xl">🎁</div>
         <span className="font-bold text-amber-700 text-sm md:text-base">宝藏店</span>
       </div>
