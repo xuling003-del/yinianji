@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v21';
+const CACHE_NAME = 'quest-island-v22';
 const ASSETS_TO_CACHE = [
   // Core
   './',
@@ -11,10 +11,9 @@ const ASSETS_TO_CACHE = [
   './questions.ts',
   './sound.ts',
   
-  // Note: Icons are commented out to prevent install failure if files are missing.
-  // They will be cached at runtime when requested.
-  // './icon/icon-192x192.png',
-  // './icon/icon-512x512.png',
+  // Icons - Now essential for PWA install experience
+  './icon/icon-192x192.png',
+  './icon/icon-512x512.png',
   
   // External
   'https://cdn.tailwindcss.com',

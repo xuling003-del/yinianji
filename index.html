@@ -15,17 +15,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="奇幻岛">
     
-    <!-- iOS Startup Image (Placeholder using icon, ideally should be specific splash screens) -->
-    <link rel="apple-touch-startup-image" href="./icon/icon-512x512.png">
+    <!-- iOS Startup Image -->
+    <link rel="apple-touch-startup-image" href="icon/icon-512x512.png">
     
     <!-- Android Legacy Support -->
     <meta name="mobile-web-app-capable" content="yes">
     
-    <!-- Use specific sized icon (192x192 is standard for favicons/shortcuts) -->
-    <link rel="icon" type="image/png" href="./icon/icon-192x192.png">
-    <link rel="apple-touch-icon" href="./icon/icon-192x192.png">
+    <!-- Icons: Update paths to be clean relative paths -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon/icon-512x512.png">
+    <link rel="apple-touch-icon" href="icon/icon-192x192.png">
     
-    <!-- Removed crossorigin="anonymous" to ensure compatibility with SW cached opaque/cors responses -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
