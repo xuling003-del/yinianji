@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v20';
+const CACHE_NAME = 'quest-island-v21';
 const ASSETS_TO_CACHE = [
   // Core
   './',
@@ -93,7 +93,9 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
         // Cache valid responses
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+        // IMPORTANT: Allow 'basic' (same-origin) AND 'cors' (external scripts/fonts like tailwind)
+        // Check if response is valid before caching
+        if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
