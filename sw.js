@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v18';
+const CACHE_NAME = 'quest-island-v19';
 const ASSETS_TO_CACHE = [
   // Core
   './',
@@ -11,9 +11,8 @@ const ASSETS_TO_CACHE = [
   './questions.ts',
   './sound.ts',
   
-  // Assets (Synchronized with Manifest)
-  './icon/icon-192x192.png',
-  './icon/icon-512x512.png',
+  // Note: Icons are removed from strict pre-cache to prevent SW install failure 
+  // if files are missing. They will be cached at runtime by the fetch handler below.
   
   // External
   'https://cdn.tailwindcss.com',
@@ -63,17 +62,28 @@ self.addEventListener('fetch', (event) => {
   // 1. Handle Navigation Requests (HTML)
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('./index.html', { ignoreSearch: true }).then((cachedResponse) => {
-        // Return cached index.html if available
-        if (cachedResponse) {
-          return cachedResponse;
+      (async () => {
+        try {
+          // First, try to match the exact request (e.g., / or /index.html)
+          let cachedResponse = await caches.match(event.request);
+          if (cachedResponse) return cachedResponse;
+          
+          // If not found (e.g., query params mismatch), try the generic entry point
+          cachedResponse = await caches.match('./index.html');
+          if (cachedResponse) return cachedResponse;
+          
+          cachedResponse = await caches.match('./');
+          if (cachedResponse) return cachedResponse;
+
+          // Network fallback
+          return await fetch(event.request);
+        } catch (error) {
+           // Offline fallback: try to find the index.html in cache again
+           const cache = await caches.open(CACHE_NAME);
+           const cachedIndex = await cache.match('./index.html');
+           return cachedIndex;
         }
-        // Fallback to network
-        return fetch(event.request).catch(() => {
-           // If network fails (offline), return cached index.html
-           return caches.match('./index.html', { ignoreSearch: true });
-        });
-      })
+      })()
     );
     return;
   }
