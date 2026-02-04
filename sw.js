@@ -1,7 +1,7 @@
 
-const CACHE_NAME = 'quest-island-v13';
+const CACHE_NAME = 'quest-island-v14';
 const ASSETS_TO_CACHE = [
-  // Removed './' to avoid potential 404s on strict file servers which breaks SW install
+  // Core
   './index.html',
   './index.tsx',
   './App.tsx',
@@ -9,9 +9,20 @@ const ASSETS_TO_CACHE = [
   './constants.ts',
   './questions.ts',
   './sound.ts',
-  './icon/android-chrome-192x192.png',
-  './icon/android-chrome-512x512.png',
-  'https://cdn.tailwindcss.com'
+  './icon/icon.png',
+  'https://cdn.tailwindcss.com',
+  
+  // Utils & Hooks
+  './utils/helpers.ts',
+  './hooks/useGameState.ts',
+
+  // Components
+  './components/Header.tsx',
+  './components/IslandMap.tsx',
+  './components/LessonViewer.tsx',
+  './components/ProfileView.tsx',
+  './components/StoreView.tsx',
+  './components/BouncingItem.tsx'
 ];
 
 // Install event: Pre-cache core files
