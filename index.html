@@ -3,12 +3,20 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>奇幻学习岛</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f0f9ff">
+
+    <!-- iOS / Safari Standalone Mode Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="奇幻岛">
+    
+    <!-- Android Legacy Support -->
+    <meta name="mobile-web-app-capable" content="yes">
     
     <!-- Use standard icon names -->
     <link rel="icon" type="image/png" href="./icon/android-chrome-192x192.png">
@@ -27,6 +35,8 @@
             user-select: none;
             color: #334155;
             -webkit-tap-highlight-color: transparent;
+            /* Handle iOS safe areas in standalone mode */
+            padding-bottom: env(safe-area-inset-bottom);
         }
         /* Only H1 and H2 use the playful font by default now. H3 (questions) uses standard. */
         h1, h2, .font-playful {

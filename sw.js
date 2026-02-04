@@ -1,7 +1,7 @@
 
-const CACHE_NAME = 'quest-island-v12';
+const CACHE_NAME = 'quest-island-v13';
 const ASSETS_TO_CACHE = [
-  './',
+  // Removed './' to avoid potential 404s on strict file servers which breaks SW install
   './index.html',
   './index.tsx',
   './App.tsx',
