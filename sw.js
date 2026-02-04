@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v15';
+const CACHE_NAME = 'quest-island-v16';
 const ASSETS_TO_CACHE = [
   // Core
   './index.html',
@@ -9,7 +9,7 @@ const ASSETS_TO_CACHE = [
   './constants.ts',
   './questions.ts',
   './sound.ts',
-  './icon/icon.png',
+  // Removed icon from strict precache to prevent SW install failure if file is missing
   'https://cdn.tailwindcss.com',
   
   // Utils & Hooks
@@ -29,6 +29,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      // Attempt to cache core assets. If any fail, SW install fails.
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -53,17 +54,17 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
-  // 1. 处理导航请求 (页面跳转或PWA启动)
+  // 1. Handle Navigation Requests (HTML)
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.match('./index.html').then((cachedResponse) => {
-        // 优先返回缓存的 index.html
+        // Return cached index.html if available
         if (cachedResponse) {
           return cachedResponse;
         }
-        // 如果缓存没有，尝试网络请求
+        // Fallback to network
         return fetch(event.request).catch(() => {
-           // 网络也失败（离线），再次尝试匹配缓存（作为兜底）
+           // If network fails, try to match index.html again (robustness)
            return caches.match('./index.html');
         });
       })
@@ -71,13 +72,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. 处理其他资源请求
+  // 2. Handle Asset Requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // 只缓存有效的响应
+        // Cache valid responses
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -86,7 +87,7 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch((err) => {
-        // 网络请求失败，什么都不做
+        // Network failure, ignore
       });
 
       return cachedResponse || fetchPromise;
