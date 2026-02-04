@@ -52,9 +52,9 @@ export interface CustomReward {
 
 export interface InventoryItem {
   id: string;
-  type: 'sticker' | 'puzzle' | 'custom_coupon';
+  type: 'sticker' | 'puzzle' | 'custom_coupon' | 'card'; // Added 'card'
   name: string;
-  icon: string; // Emoji or image URL
+  icon: string; // Emoji or image URL path for cards
   obtainedAt: number;
   isRedeemed?: boolean; // For custom coupons
 }
@@ -81,6 +81,8 @@ export interface AchievementCard {
   title: string;
   conditionText: string;
   icon: string;
+  image: string; // URL to the card image in media folder
+  description: string; // Short description text displayed below image
   message: string;
   colorClass: string; // Tailwind classes for background/border
 }

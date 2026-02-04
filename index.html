@@ -12,18 +12,17 @@
 
     <!-- iOS / Safari Standalone Mode Support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="奇幻岛">
     
-    <!-- iOS Startup Image -->
-    <link rel="apple-touch-startup-image" href="/icon/icon-512x512.png">
+    <!-- Fallback Icon (Emoji) if image files are missing -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
     
     <!-- Android Legacy Support -->
     <meta name="mobile-web-app-capable" content="yes">
     
-    <!-- Icons -->
+    <!-- Icons (Try to load these, but fallback to SVG above if missing) -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icon/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon/icon-512x512.png">
     <link rel="apple-touch-icon" href="/icon/icon-192x192.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -41,6 +40,7 @@
             -webkit-tap-highlight-color: transparent;
             /* Handle iOS safe areas in standalone mode */
             padding-bottom: env(safe-area-inset-bottom);
+            overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
         }
         /* Only H1 and H2 use the playful font by default now. H3 (questions) uses standard. */
         h1, h2, .font-playful {
@@ -81,6 +81,7 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-sky-50 overflow-x-hidden">
     <div id="root" class="min-h-screen"></div>
@@ -90,10 +91,9 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Register absolute path /sw.js
           navigator.serviceWorker.register('/sw.js')
             .then(registration => {
-              console.log('SW registered');
+              console.log('SW registered with scope:', registration.scope);
             })
             .catch(registrationError => {
               console.log('SW registration failed: ', registrationError);

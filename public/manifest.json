@@ -1,57 +1,27 @@
 
 {
-  "name": "奇幻学习岛 - 一年级互动课堂",
+  "name": "奇幻学习岛",
   "short_name": "奇幻岛",
-  "start_url": "index.html",
-  "id": "index.html",
-  "scope": "./",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#f0f9ff",
   "theme_color": "#f0f9ff",
-  "description": "一个为一年级学生设计的20天互动学习平台。包含数学、语文、英语知识点，融合游戏化激励机制，支持离线进度保存。",
+  "description": "一个为一年级学生设计的20天互动学习平台。",
   "orientation": "portrait",
-  "categories": ["education", "games", "family"],
   "icons": [
     {
-      "src": "icon/icon-192x192.png",
+      "src": "/icon/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "icon/icon-512x512.png",
+      "src": "/icon/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "icon/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "学习地图"
-    },
-    {
-      "src": "icon/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "互动答题"
+      "purpose": "any maskable"
     }
   ]
 }

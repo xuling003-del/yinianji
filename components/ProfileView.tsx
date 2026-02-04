@@ -59,6 +59,7 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
     playClick();
+    alert('✅ 备份文件已下载！\n包含了：\n- 孩子昵称与星星 ✨\n- 所有的贴纸与卡片收藏 🦄\n- 学习进度与设置 📊');
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,9 +77,10 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
           
           // Basic validation to ensure it's a valid save file
           if (parsedData && typeof parsedData.stars === 'number' && parsedData.courseProgress) {
-             if (window.confirm('⚠️ 确定要导入这份存档吗？\n当前设备上的所有进度将被覆盖且无法找回！')) {
+             const confirmMsg = '⚠️ 确定要恢复这份存档吗？\n\n恢复后，当前的：\n- 星星数量\n- 收集的贴纸与卡片\n- 学习进度\n\n将全部替换为存档中的状态，且无法撤销！';
+             if (window.confirm(confirmMsg)) {
                setUser(parsedData);
-               alert('✅ 导入成功！进度已恢复。');
+               alert('✅ 恢复成功！\n所有的星星、收藏和进度都已回来啦！');
                playUnlock();
                setShowParentSettings(false); // Close settings to refresh view context
              }
@@ -320,7 +322,7 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
                 <div>
                   <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">🎁 宝箱奖励设置</h3>
                   <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 mb-4">
-                     <p className="text-xs text-amber-600 mb-2">孩子每次通关后会开宝箱。系统会先按概率判断是否给予下方设置的“家长奖励”。若未中奖，则随机给予贴纸或拼图。</p>
+                     <p className="text-xs text-amber-600 mb-2">孩子每次通关后会开宝箱。系统会先按概率判断是否给予下方设置的“家长奖励”。若未中奖，则随机给予贴纸、卡片或拼图。</p>
                      
                      <div className="space-y-2 mb-4">
                         {tempSettings.customRewards?.map((r) => (
@@ -371,17 +373,17 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
                 <div>
                   <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">📦 数据备份与恢复</h3>
                   <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 flex flex-col gap-4">
-                     <p className="text-xs text-blue-600">您可以将当前的学习进度导出保存，或在其他设备上导入进度文件。</p>
+                     <p className="text-xs text-blue-600">您可以将当前的学习进度、收集的贴纸卡片等完整导出保存，或在其他设备上恢复。</p>
                      
                      <div className="flex gap-4">
                         <button 
                            onClick={handleExportData}
                            className="flex-1 bg-white border-2 border-blue-200 text-blue-600 py-3 rounded-lg font-bold hover:bg-blue-100 active:scale-95 shadow-sm"
                         >
-                           📥 导出进度文件
+                           📥 导出完整备份
                         </button>
                         <label className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600 active:scale-95 shadow-sm text-center cursor-pointer">
-                           📤 导入进度文件
+                           📤 恢复备份数据
                            <input 
                               type="file" 
                               accept=".json"
@@ -390,7 +392,7 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
                            />
                         </label>
                      </div>
-                     <p className="text-[10px] text-gray-400 text-center">注意：导入将覆盖当前设备上的所有进度。</p>
+                     <p className="text-[10px] text-gray-400 text-center">注意：恢复将覆盖当前设备上的所有进度。</p>
                   </div>
                 </div>
 

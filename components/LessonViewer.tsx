@@ -37,7 +37,7 @@ export const LessonViewer: React.FC<{
   
   // Chest / Reward State
   const [chestOpened, setChestOpened] = useState(false);
-  const [wonReward, setWonReward] = useState<{type: string, name: string, icon: string} | null>(null);
+  const [wonReward, setWonReward] = useState<{type: string, name: string, icon: string, isCard?: boolean} | null>(null);
 
   // Standard Multiple Choice State
   const [selected, setSelected] = useState<string | null>(null);
@@ -237,12 +237,34 @@ export const LessonViewer: React.FC<{
     setChestOpened(true);
     playUnlock();
 
+    // To prevent checking against current session data which might not be fully synced in context yet (though we are in a component),
+    // we should really be passing 'currentInventory' as a prop, but for now we assume duplicate checks are 'good enough' or won't break things.
+    // However, to do this properly, we need to know what the user *already* has.
+    // Since we don't have the user object directly here, we might have to rely on `onComplete` to filter?
+    // No, we need to decide *now* what to show.
+    // Limitation: We don't have access to user.inventory here. 
+    // FIX: We need to assume the parent component will handle duplicates if we pass a generic reward? 
+    // Actually, let's fetch inventory from localStorage for a quick check or just randomize and let the 'uniqueness' logic happen.
+    // BETTER FIX: The `LessonViewer` is used inside `App.tsx`. We can't easily access user inventory here without props.
+    // Let's check `App.tsx`... `App.tsx` renders `LessonViewer`. I can pass the inventory or a "collectedIds" array.
+    // BUT, modifying the props is a larger change.
+    // Alternative: Read from localStorage directly just for this check (Safe enough for this app structure).
+    
+    let currentInventory: InventoryItem[] = [];
+    try {
+      const s = localStorage.getItem('quest_island_v10');
+      if (s) {
+         currentInventory = JSON.parse(s).inventory || [];
+      }
+    } catch (e) {}
+    
+    const ownedIds = new Set(currentInventory.map(i => i.name)); // Using Name for Stickers uniqueness as IDs might vary by timestamp
+    // For cards, we can check by ID suffix or Name
+    const ownedCardPaths = new Set(currentInventory.filter(i => i.type === 'card').map(i => i.icon));
+
+
     // 1. Roll for Custom Rewards
     let reward: InventoryItem | null = null;
-    const roll = Math.random() * 100;
-
-    // Sort rewards by probability ascending so smaller probabilities check first if we iterate (simplistic approach)
-    // Or just pick one random custom reward to check against its probability
     const shuffledCustom = shuffleArray(userSettings.customRewards || []);
     
     for (const r of shuffledCustom) {
@@ -259,38 +281,78 @@ export const LessonViewer: React.FC<{
       }
     }
 
-    // 2. If no custom reward, give a game reward (Sticker or Extra Stars)
+    // 2. If no custom reward, Try for a GAME CARD (30% chance)
     if (!reward) {
-      const gameRoll = Math.random();
-      if (gameRoll < 0.7) {
-         // 70% chance for Sticker
-         const randomSticker = STICKERS[Math.floor(Math.random() * STICKERS.length)];
-         reward = {
-           id: `sticker_${Date.now()}`,
-           type: 'sticker',
-           name: randomSticker.name,
-           icon: randomSticker.icon,
-           obtainedAt: Date.now()
-         };
-      } else {
-         // 30% chance for Bonus Stars (Virtual Item)
-         const randomSticker = STICKERS[Math.floor(Math.random() * STICKERS.length)];
-         reward = {
-           id: `sticker_${Date.now()}`,
-           type: 'sticker',
-           name: randomSticker.name,
-           icon: randomSticker.icon,
-           obtainedAt: Date.now()
-         };
-      }
+       const isCardRoll = Math.random() < 0.3;
+       if (isCardRoll) {
+          // Find a card we don't have yet.
+          // We support 50 cards.
+          const allCardIndices = Array.from({length: 50}, (_, i) => i + 1);
+          // Shuffle to pick random unowned
+          const shuffledIndices = shuffleArray(allCardIndices);
+          let newCardIndex = -1;
+
+          for (const idx of shuffledIndices) {
+             const path = `/media/card_${idx}.png`;
+             if (!ownedCardPaths.has(path)) {
+                newCardIndex = idx;
+                break;
+             }
+          }
+
+          if (newCardIndex !== -1) {
+             reward = {
+                id: `card_${Date.now()}_${newCardIndex}`,
+                type: 'card',
+                name: `珍藏卡片 #${newCardIndex}`,
+                icon: `/media/card_${newCardIndex}.png`,
+                obtainedAt: Date.now()
+             };
+          }
+       }
     }
 
-    setWonReward({ type: reward.type, name: reward.name, icon: reward.icon });
+    // 3. If no card, Try for a Sticker (Standard)
+    if (!reward) {
+       // Filter stickers we don't have (by name)
+       const availableStickers = STICKERS.filter(s => !ownedIds.has(s.name));
+       
+       if (availableStickers.length > 0) {
+          const randomSticker = availableStickers[Math.floor(Math.random() * availableStickers.length)];
+          reward = {
+             id: `sticker_${Date.now()}`,
+             type: 'sticker',
+             name: randomSticker.name,
+             icon: randomSticker.icon,
+             obtainedAt: Date.now()
+          };
+       } else {
+          // If we have all stickers (or failed to get card), maybe fallback to a duplicate sticker?
+          // Or just give Stars. Let's give stars if we have everything, or fallback to a random sticker if we just missed the Card roll but have all stickers.
+          // Simplification: If availableStickers is empty, we just don't give a sticker reward, we give stars.
+       }
+    }
+    
+    // 4. If still no reward (User has everything, or bad luck), give Bonus Stars (Virtual Item)
+    // Actually, in onComplete, if reward is null, we can handle it. But let's give a visual "Bonus Stars" item.
+    // Note: InventoryItem needs to be stored. Bonus stars aren't usually stored in inventory.
+    // We will return NULL here for reward, but handle the UI.
+    
+    if (reward) {
+       setWonReward({ type: reward.type, name: reward.name, icon: reward.icon, isCard: reward.type === 'card' });
+    } else {
+       // Visual only for bonus stars
+       setWonReward({ type: 'stars', name: '10个星星奖励', icon: '⭐', isCard: false });
+    }
 
     // Wait a bit then finish
     setTimeout(() => {
        const totalTimeSpent = calculateTotalTime();
-       onComplete(lesson.points, lesson.questions.map(q => q.id), { 
+       // If the reward was "stars", we pass null as the item, but maybe add points?
+       // Let's just add 10 extra points if no item reward.
+       const finalPoints = lesson.points + (reward ? 0 : 10);
+       
+       onComplete(finalPoints, lesson.questions.map(q => q.id), { 
           day: lesson.day,
           timeSpent: totalTimeSpent, 
           mistakesByCat, 
@@ -504,7 +566,13 @@ export const LessonViewer: React.FC<{
                 </div>
               ) : (
                 <div className="animate-pop flex flex-col items-center">
-                   <div className="text-[8rem] md:text-[10rem] mb-4 drop-shadow-2xl">{wonReward?.icon}</div>
+                   {wonReward?.isCard ? (
+                      <div className="w-48 h-48 md:w-64 md:h-64 mb-6 rounded-2xl border-4 border-amber-300 shadow-xl overflow-hidden island-float bg-white">
+                         <img src={wonReward.icon} alt={wonReward.name} className="w-full h-full object-contain p-2" />
+                      </div>
+                   ) : (
+                      <div className="text-[8rem] md:text-[10rem] mb-4 drop-shadow-2xl">{wonReward?.icon}</div>
+                   )}
                    <div className="text-2xl md:text-3xl font-black text-gray-800 bg-white border-4 border-amber-200 px-8 py-4 rounded-full shadow-lg">
                       {wonReward?.name}
                    </div>

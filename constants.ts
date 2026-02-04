@@ -1,4 +1,5 @@
 
+
 import { Course, Lesson, Question, ParentSettings, QuestionCategory, AchievementCard, DecorationItem } from './types';
 import { QUESTION_BANK } from './questions';
 
@@ -64,12 +65,42 @@ export const DECORATIONS: DecorationItem[] = [
   { id: 'build_rocket', type: 'building', name: '火箭基', icon: '🚀', cost: 1200 },
 ];
 
-export const ACHIEVEMENT_CARDS: AchievementCard[] = [
+// ----------------------------------------------------------------------
+// 荣誉卡片图片分配逻辑
+// ----------------------------------------------------------------------
+
+// 由于部分环境不支持 import.meta.glob，我们采用“约定命名”的方式。
+// 请确保 media 文件夹下有 card_1.png, card_2.png ... 等图片。
+const MAX_SUPPORTED_IMAGES = 50; 
+const imagePool = Array.from({ length: MAX_SUPPORTED_IMAGES }, (_, i) => `/media/card_${i + 1}.png`);
+
+// 1. 伪随机生成器：保证每次刷新页面时，卡片分配到的图片是固定的
+function seededRandom(seed: number) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+// 2. 打乱数组
+const shuffle = (arr: string[], seed: number) => {
+  const newArr = [...arr];
+  for (let i = newArr.length - 1; i > 0; i--) {
+    const j = Math.floor(seededRandom(seed + i) * (i + 1));
+    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+  }
+  return newArr;
+};
+
+// 3. 使用固定种子打乱图片池
+const shuffledImagePool = shuffle(imagePool, 8888); 
+
+// 4. 定义原始卡片数据
+const RAW_CARDS: Omit<AchievementCard, 'image'>[] = [
   {
     id: 'streak_3',
     title: '坚持之星',
     conditionText: '连续学习3天解锁',
     icon: '🌱',
+    description: '坚持是成功的基石',
     message: '奖励给坚持与成长的你',
     colorClass: 'bg-green-100 border-green-300 text-green-700'
   },
@@ -78,6 +109,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     title: '胜利勋章',
     conditionText: '连续学习10天解锁',
     icon: '🏆',
+    description: '你的毅力令人佩服',
     message: '你不仅聪明，还勤奋，没有什么事情是你办不到的！',
     colorClass: 'bg-amber-100 border-amber-300 text-amber-700'
   },
@@ -86,6 +118,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     title: '智慧光环',
     conditionText: '单关卡无错题解锁',
     icon: '✨',
+    description: '追求卓越，一丝不苟',
     message: '奖励给细心与智慧的你',
     colorClass: 'bg-indigo-100 border-indigo-300 text-indigo-700'
   },
@@ -94,6 +127,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     title: '闪电侠',
     conditionText: '单关卡1分钟内通关解锁',
     icon: '⚡',
+    description: '思维敏捷，快如闪电',
     message: '你像闪电一样迅捷，手握智慧的权杖',
     colorClass: 'bg-sky-100 border-sky-300 text-sky-700'
   },
@@ -102,16 +136,19 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     title: '完美风暴',
     conditionText: '1分钟内且无错题通关解锁',
     icon: '💎',
+    description: '完美与速度的化身',
     message: '速度与准确的完美结合，你是当之无愧的超级探险家！',
     colorClass: 'bg-rose-100 border-rose-300 text-rose-700'
   }
 ];
 
-// 伪随机生成器，根据 seed 确保生成结果的可复现性
-function seededRandom(seed: number) {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-}
+// 5. 自动分配
+export const ACHIEVEMENT_CARDS: AchievementCard[] = RAW_CARDS.map((card, index) => ({
+  ...card,
+  // 循环使用打乱后的图片池
+  image: shuffledImagePool[index % shuffledImagePool.length]
+}));
+
 
 /**
  * Generates a lesson for a specific day while ensuring no questions from excludeIds are used.
@@ -129,7 +166,7 @@ export function generateLesson(
   // Combine day and userSeed to create a unique but consistent seed for this day/user combo
   const seed = (day * 123) + userSeed;
   
-  const shuffle = (arr: any[], customSeed: number) => {
+  const shuffleQuestions = (arr: any[], customSeed: number) => {
     const newArr = [...arr];
     for (let i = newArr.length - 1; i > 0; i--) {
       const j = Math.floor(seededRandom(customSeed + i) * (i + 1));
@@ -146,10 +183,10 @@ export function generateLesson(
     if (available.length < count) {
       const remainingNeeded = count - available.length;
       const reused = QUESTION_BANK.filter(q => q.category === cat && excludeIds.includes(q.id));
-      available = [...available, ...shuffle(reused, seed).slice(0, remainingNeeded)];
+      available = [...available, ...shuffleQuestions(reused, seed).slice(0, remainingNeeded)];
     }
 
-    return shuffle(available, seed).slice(0, count);
+    return shuffleQuestions(available, seed).slice(0, count);
   };
 
   // 根据设置获取题目
@@ -179,7 +216,7 @@ export function generateLesson(
   const story = stories[day % stories.length];
 
   // Apply shuffling based on settings
-  const finalQuestions = settings.shuffleQuestions ? shuffle(questions, seed + 999) : questions;
+  const finalQuestions = settings.shuffleQuestions ? shuffleQuestions(questions, seed + 999) : questions;
 
   return {
     day,
