@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v1';
+const CACHE_NAME = 'quest-island-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -39,28 +39,37 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event: Network-first strategy for dev (or Cache-first for prod), 
-// here we use Stale-While-Revalidate logic for robustness in this specific environment
+// Fetch event
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests like Google GenAI or others if necessary, 
-  // but we want to cache CDN assets (React, Tailwind, Fonts).
-  
+  // 关键修复：处理导航请求（如从主屏幕启动App）
+  // 无论请求什么页面路径，如果是导航模式，都优先返回缓存的 index.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.match('./index.html').then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
+      }).catch(() => {
+        return fetch(event.request);
+      })
+    );
+    return;
+  }
+
+  // Handle other resource requests (Images, Scripts, etc.)
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // If found in cache, return it, but also update the cache in the background
+      // Stale-While-Revalidate 策略
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Only cache valid responses
-        if (networkResponse && networkResponse.status === 200) {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Network failed, nothing to do
+      }).catch((err) => {
+        // Network failed, rely on cache
       });
 
       return cachedResponse || fetchPromise;

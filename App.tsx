@@ -593,6 +593,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   const [pin, setPin] = useState('');
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [tempSettings, setTempSettings] = useState<ParentSettings>(user.parentSettings || DEFAULT_SETTINGS);
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   
   // Custom Reward Form
   const [newRewardName, setNewRewardName] = useState('');
@@ -693,7 +694,13 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
        {!showParentSettings ? (
          <>
           {/* Header */}
-          <div className="mt-10 md:mt-10 w-32 h-32 md:w-40 md:h-40 bg-sky-50 rounded-[2rem] md:rounded-[3rem] flex items-center justify-center text-[4rem] md:text-[5rem] border-[6px] md:border-[8px] border-white shadow-xl">{user.avatar}</div>
+          <div 
+            onClick={() => { playClick(); setShowAvatarSelector(true); }}
+            className="mt-10 md:mt-10 w-32 h-32 md:w-40 md:h-40 bg-sky-50 rounded-[2rem] md:rounded-[3rem] flex items-center justify-center text-[4rem] md:text-[5rem] border-[6px] md:border-[8px] border-white shadow-xl cursor-pointer relative group active:scale-95 transition-transform"
+          >
+            {user.avatar}
+            <div className="absolute bottom-2 right-2 bg-white text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full border shadow-sm group-hover:bg-sky-50">更换</div>
+          </div>
           
           {/* Name Editor */}
           {editing ? (
@@ -773,6 +780,30 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                )}
              </div>
           </div>
+          
+          {/* Avatar Selector Modal */}
+          {showAvatarSelector && (
+            <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowAvatarSelector(false)}>
+              <div className="bg-white p-6 rounded-[2rem] w-full max-w-sm border-4 border-sky-100 shadow-2xl" onClick={e => e.stopPropagation()}>
+                 <div className="flex justify-between items-center mb-4">
+                   <h3 className="text-xl font-black text-gray-700">更换头像</h3>
+                   <button onClick={() => setShowAvatarSelector(false)} className="text-gray-400 text-2xl">✕</button>
+                 </div>
+                 <div className="grid grid-cols-3 gap-4">
+                    {AVATARS.filter(a => user.unlockedItems.includes(a.id)).map(a => (
+                      <button 
+                        key={a.id}
+                        onClick={() => { playClick(); setUser({...user, avatar: a.icon}); setShowAvatarSelector(false); }}
+                        className={`p-4 rounded-xl text-4xl border-2 transition-all ${user.avatar === a.icon ? 'bg-sky-100 border-sky-400' : 'bg-gray-50 border-gray-100 hover:bg-sky-50'}`}
+                      >
+                        {a.icon}
+                      </button>
+                    ))}
+                 </div>
+                 {AVATARS.every(a => !user.unlockedItems.includes(a.id)) && <p className="text-gray-400 text-center py-4">还没有解锁其他头像哦</p>}
+              </div>
+            </div>
+          )}
          </>
        ) : (
          /* Parent Settings Modal Content */
@@ -891,7 +922,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
 };
 
 const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'avatar' | 'cards' | 'bag' | 'deco'>('bag');
+  const [activeTab, setActiveTab] = useState<'avatar' | 'cards' | 'bag' | 'deco'>('deco'); // Changed default from 'bag' to 'deco'
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const selectedCard = ACHIEVEMENT_CARDS.find(c => c.id === selectedCardId);
@@ -911,12 +942,6 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
        {/* Tabs */}
        <div className="flex gap-2 md:gap-4 mb-4 md:mb-6 p-1 bg-white rounded-xl border-2 border-amber-100 shadow-sm overflow-x-auto max-w-full">
           <button 
-            onClick={() => { playClick(); setActiveTab('bag'); }}
-            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'bag' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
-          >
-            我的背包 🎒
-          </button>
-          <button 
             onClick={() => { playClick(); setActiveTab('deco'); }}
             className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'deco' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
           >
@@ -934,69 +959,17 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
           >
             荣誉卡片 🏆
           </button>
+          <button 
+            onClick={() => { playClick(); setActiveTab('bag'); }}
+            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'bag' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
+          >
+            我的背包 🎒
+          </button>
        </div>
 
        {/* Content Area */}
        <div className="flex-1 w-full overflow-y-auto px-4 pb-20 flex flex-col items-center">
           <div className="w-full max-w-5xl">
-
-            {/* Inventory Bag Tab */}
-            {activeTab === 'bag' && (
-               <div className="space-y-8 animate-fade-in">
-                  
-                  {/* Coupons Section */}
-                  <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-sky-100">
-                     <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
-                        🎟️ 兑换券 <span className="text-sm font-normal text-gray-400">(找爸爸妈妈兑换)</span>
-                     </h3>
-                     {coupons.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">还未获得兑换券，去闯关开宝箱吧！</div>
-                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                           {coupons.map(c => (
-                             <div key={c.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl shadow-sm">
-                                <div className="text-3xl bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-sm">🎁</div>
-                                <div className="flex-1">
-                                   <div className="font-bold text-orange-800">{c.name}</div>
-                                   <div className="text-xs text-orange-500">{new Date(c.obtainedAt).toLocaleDateString()} 获得</div>
-                                </div>
-                                <button 
-                                  onClick={() => {
-                                     if(confirm('确定要兑换并消耗这张券吗？')) {
-                                       setUser({...user, inventory: user.inventory.filter(i => i.id !== c.id)});
-                                     }
-                                  }}
-                                  className="px-3 py-1 bg-white text-orange-600 text-xs font-bold rounded-full border border-orange-200 active:scale-95"
-                                >
-                                   兑换
-                                </button>
-                             </div>
-                           ))}
-                        </div>
-                     )}
-                  </div>
-
-                  {/* Stickers Section */}
-                  <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-indigo-100">
-                     <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
-                        🦄 贴纸集 <span className="text-sm font-normal text-gray-400">({stickers.length}个)</span>
-                     </h3>
-                     {stickers.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">空空如也</div>
-                     ) : (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                           {stickers.map(s => (
-                             <div key={s.id} className="aspect-square flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl border border-indigo-100 p-2">
-                                <div className="text-4xl md:text-5xl mb-1 animate-pop">{s.icon}</div>
-                                <div className="text-[10px] md:text-xs text-indigo-400 font-bold text-center truncate w-full">{s.name}</div>
-                             </div>
-                           ))}
-                        </div>
-                     )}
-                  </div>
-
-               </div>
-            )}
 
             {/* Island Decoration Shop Tab */}
             {activeTab === 'deco' && (
@@ -1015,8 +988,6 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
                              <button
                                onClick={() => {
                                  if (active) {
-                                   // Keep at least one theme, maybe fallback to default if user tries to uncheck? 
-                                   // For themes, usually we swap. But if user insists on deselecting, we could reset to default 'theme_sky'.
                                    if (d.id !== 'theme_sky') {
                                       playClick();
                                       setUser({...user, activeDecorations: {...user.activeDecorations, theme: 'theme_sky'}});
@@ -1132,6 +1103,35 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
               </div>
             )}
             
+            {/* Avatars Tab */}
+            {activeTab === 'avatar' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 animate-fade-in">
+                {AVATARS.map(a => {
+                  const owned = user.unlockedItems.includes(a.id);
+                  return (
+                    <div key={a.id} className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] shadow-xl flex flex-col items-center gap-4 md:gap-6 border-4 border-white">
+                      <div className="text-6xl md:text-8xl">{a.icon}</div>
+                      <button 
+                          disabled={owned && user.avatar === a.icon}
+                          onClick={() => {
+                            if (owned) {
+                              playClick();
+                              setUser({...user, avatar: a.icon});
+                            } else if (user.stars >= a.cost) {
+                              playUnlock();
+                              setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
+                            }
+                          }}
+                          className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-lg md:text-xl transition-all ${user.avatar === a.icon ? 'bg-sky-100 text-sky-500' : owned ? 'bg-sky-500 text-white' : user.stars >= a.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                      >
+                        {user.avatar === a.icon ? '使用中' : owned ? '更换' : `${a.cost} ⭐`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Achievement Cards Tab */}
             {activeTab === 'cards' && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 animate-fade-in">
@@ -1162,33 +1162,62 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
               </div>
             )}
 
-            {/* Avatars Tab */}
-            {activeTab === 'avatar' && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 animate-fade-in">
-                {AVATARS.map(a => {
-                  const owned = user.unlockedItems.includes(a.id);
-                  return (
-                    <div key={a.id} className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] shadow-xl flex flex-col items-center gap-4 md:gap-6 border-4 border-white">
-                      <div className="text-6xl md:text-8xl">{a.icon}</div>
-                      <button 
-                          disabled={owned && user.avatar === a.icon}
-                          onClick={() => {
-                            if (owned) {
-                              playClick();
-                              setUser({...user, avatar: a.icon});
-                            } else if (user.stars >= a.cost) {
-                              playUnlock();
-                              setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
-                            }
-                          }}
-                          className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-lg md:text-xl transition-all ${user.avatar === a.icon ? 'bg-sky-100 text-sky-500' : owned ? 'bg-sky-500 text-white' : user.stars >= a.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
-                      >
-                        {user.avatar === a.icon ? '使用中' : owned ? '更换' : `${a.cost} ⭐`}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+            {/* Inventory Bag Tab */}
+            {activeTab === 'bag' && (
+               <div className="space-y-8 animate-fade-in">
+                  
+                  {/* Coupons Section */}
+                  <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-sky-100">
+                     <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
+                        🎟️ 兑换券 <span className="text-sm font-normal text-gray-400">(找爸爸妈妈兑换)</span>
+                     </h3>
+                     {coupons.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">还未获得兑换券，去闯关开宝箱吧！</div>
+                     ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                           {coupons.map(c => (
+                             <div key={c.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl shadow-sm">
+                                <div className="text-3xl bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-sm">🎁</div>
+                                <div className="flex-1">
+                                   <div className="font-bold text-orange-800">{c.name}</div>
+                                   <div className="text-xs text-orange-500">{new Date(c.obtainedAt).toLocaleDateString()} 获得</div>
+                                </div>
+                                <button 
+                                  onClick={() => {
+                                     if(confirm('确定要兑换并消耗这张券吗？')) {
+                                       setUser({...user, inventory: user.inventory.filter(i => i.id !== c.id)});
+                                     }
+                                  }}
+                                  className="px-3 py-1 bg-white text-orange-600 text-xs font-bold rounded-full border border-orange-200 active:scale-95"
+                                >
+                                   兑换
+                                </button>
+                             </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Stickers Section */}
+                  <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-indigo-100">
+                     <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
+                        🦄 贴纸集 <span className="text-sm font-normal text-gray-400">({stickers.length}个)</span>
+                     </h3>
+                     {stickers.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">空空如也</div>
+                     ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                           {stickers.map(s => (
+                             <div key={s.id} className="aspect-square flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl border border-indigo-100 p-2">
+                                <div className="text-4xl md:text-5xl mb-1 animate-pop">{s.icon}</div>
+                                <div className="text-[10px] md:text-xs text-indigo-400 font-bold text-center truncate w-full">{s.name}</div>
+                             </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+
+               </div>
             )}
           </div>
        </div>
