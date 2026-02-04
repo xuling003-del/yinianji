@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v19';
+const CACHE_NAME = 'quest-island-v20';
 const ASSETS_TO_CACHE = [
   // Core
   './',
@@ -11,8 +11,10 @@ const ASSETS_TO_CACHE = [
   './questions.ts',
   './sound.ts',
   
-  // Note: Icons are removed from strict pre-cache to prevent SW install failure 
-  // if files are missing. They will be cached at runtime by the fetch handler below.
+  // Note: Icons are commented out to prevent install failure if files are missing.
+  // They will be cached at runtime when requested.
+  // './icon/icon-192x192.png',
+  // './icon/icon-512x512.png',
   
   // External
   'https://cdn.tailwindcss.com',
@@ -60,28 +62,24 @@ self.addEventListener('activate', (event) => {
 // Fetch event
 self.addEventListener('fetch', (event) => {
   // 1. Handle Navigation Requests (HTML)
+  // This is the App Shell pattern: for any navigation, return index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
       (async () => {
         try {
-          // First, try to match the exact request (e.g., / or /index.html)
-          let cachedResponse = await caches.match(event.request);
-          if (cachedResponse) return cachedResponse;
+          // Attempt to find index.html in cache
+          const cache = await caches.open(CACHE_NAME);
+          const cachedIndex = await cache.match('./index.html');
           
-          // If not found (e.g., query params mismatch), try the generic entry point
-          cachedResponse = await caches.match('./index.html');
-          if (cachedResponse) return cachedResponse;
+          if (cachedIndex) {
+            return cachedIndex;
+          }
           
-          cachedResponse = await caches.match('./');
-          if (cachedResponse) return cachedResponse;
-
-          // Network fallback
+          // If not in cache, try network
           return await fetch(event.request);
         } catch (error) {
-           // Offline fallback: try to find the index.html in cache again
-           const cache = await caches.open(CACHE_NAME);
-           const cachedIndex = await cache.match('./index.html');
-           return cachedIndex;
+           // Network failed and no cache? Nothing we can do, but usually cachedIndex handles it.
+           return new Response('Offline - Content not available');
         }
       })()
     );
