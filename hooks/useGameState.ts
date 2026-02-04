@@ -18,6 +18,7 @@ export function useGameState() {
         parentSettings: parsed.parentSettings || DEFAULT_SETTINGS,
         unlockedAchievements: parsed.unlockedAchievements || [],
         inventory: parsed.inventory || [],
+        // Update: Default fallback for decorations is now empty for pet/building
         activeDecorations: parsed.activeDecorations || { theme: 'theme_sky', pet: '', building: '' },
         currentSession: parsed.currentSession
       };
@@ -29,7 +30,9 @@ export function useGameState() {
       courseProgress: { 'main': [] }, 
       usedQuestionIds: [], 
       activeCourseId: 'main', 
-      unlockedItems: ['cat', 'theme_sky', 'pet_bird', 'build_tent'], // Unlock defaults
+      // Update: Removed specific pet/building from explicit unlock list (since cost 0 items are auto-unlocked logic-wise in Store)
+      // but keeping theme_sky and cat as base.
+      unlockedItems: ['cat', 'theme_sky'], 
       unlockedAchievements: [],
       inventory: [],
       gameSeed: Math.floor(Math.random() * 1000000),
@@ -37,7 +40,8 @@ export function useGameState() {
       lastLoginDate: '',
       statsHistory: {},
       parentSettings: DEFAULT_SETTINGS,
-      activeDecorations: { theme: 'theme_sky', pet: 'pet_bird', building: 'build_tent' },
+      // Update: Initial state has no active pet or building
+      activeDecorations: { theme: 'theme_sky', pet: '', building: '' },
       currentSession: undefined
     };
   });
