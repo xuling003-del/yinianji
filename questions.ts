@@ -140,7 +140,7 @@ export const QUESTION_BANK: Question[] = [
 { id: 'c-s-26', category: 'sentence', type: 'unscramble', text: '我们 / 要 / 爱护 / 花草树木 / 身边的', answer: '我们要爱护身边的花草树木', explanation: '能愿动词“要”放谓语前，定语“身边的”修饰宾语。' },
 { id: 'c-s-27', category: 'sentence', type: 'unscramble', text: '夜晚 / 天上的 / 星星 / 一闪一闪的 / 亮着', answer: '夜晚天上的星星一闪一闪的亮着', explanation: '叠词“一闪一闪的”修饰谓语，表动作状态。' },
 { id: 'c-s-28', category: 'sentence', type: 'unscramble', text: '奶奶 / 亲手 / 为我 / 做了 / 一碗 / 香喷喷的 / 面条', answer: '奶奶亲手为我做了一碗香喷喷的面条', explanation: '方式状语“亲手”放主语后，多层定语修饰宾语。' },
-{ id: 'c-s-29', category: 'sentence', type: 'unscramble', text: '哪里 / 你 / 找到 / 这只 / 小鸟 / 的 / 呢', answer: '你在哪里找到这只小鸟的呢', explanation: '疑问词“哪里”放谓语前，疑问句语序梳理。' },
+{ id: 'c-s-29', category: 'sentence', type: 'unscramble', text: '哪里 / 你在 / 找到 / 这只 / 小鸟 / 的 / 呢', answer: '你在哪里找到这只小鸟的呢', explanation: '疑问词“哪里”放谓语前，疑问句语序梳理。' },
 { id: 'c-s-30', category: 'sentence', type: 'unscramble', text: '春天 / 小燕子 / 从南方 / 飞回来了 / 可爱的', answer: '春天可爱的小燕子从南方飞回来了', explanation: '定语“可爱的”放主语前，表地点的补语放谓语前。' },
 { id: 'c-s-31', category: 'sentence', type: 'unscramble', text: '我 / 和 / 小伙伴 / 一起 / 去 / 郊外 / 放风筝', answer: '我和小伙伴一起去郊外放风筝', explanation: '并列主语用“和”连接，“一起”表伴随放谓语前。' },
 { id: 'c-s-32', category: 'sentence', type: 'unscramble', text: '多么 / 清澈 / 小河里的 / 河水 / 啊', answer: '小河里的河水多么清澈啊', explanation: '定语修饰名词放主语前，感叹句核心形容词放中间。' },
