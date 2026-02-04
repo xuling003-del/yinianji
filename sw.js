@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v6';
+const CACHE_NAME = 'quest-island-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const ASSETS_TO_CACHE = [
   './constants.ts',
   './questions.ts',
   './sound.ts',
-  './icon.jpg',
+  './icon/icon.svg',
   'https://cdn.tailwindcss.com'
 ];
 

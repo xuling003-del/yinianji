@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats, AchievementCard, CustomReward, InventoryItem, DecorationItem } from './types';
+import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats, AchievementCard, CustomReward, InventoryItem, DecorationItem, SessionState } from './types';
 import { COURSES, AVATARS, DECORATIONS, generateLesson, DEFAULT_SETTINGS, ACHIEVEMENT_CARDS, STICKERS } from './constants';
 import { playClick, playCorrect, playIncorrect, playFanfare, playUnlock } from './sound';
 
@@ -120,23 +120,32 @@ const LessonViewer: React.FC<{
   lesson: Lesson;
   streak: number;
   userSettings: ParentSettings;
-  // Passing finished count to help calculate achievements
   finishedCount: number; 
+  initialSession?: SessionState; // Prop for resume capability
   onComplete: (points: number, questionIds: string[], stats: LevelStats, reward: InventoryItem | null) => void;
+  onSaveProgress: (state: SessionState) => void; // Callback to save progress
   onClose: () => void;
-}> = ({ lesson, streak, userSettings, finishedCount, onComplete, onClose }) => {
-  const [step, setStep] = useState<'intro' | 'quiz' | 'finish' | 'chest'>('intro');
-  const [qIndex, setQIndex] = useState(0);
-  const [feedback, setFeedback] = useState<{msg: string, ok: boolean} | null>(null);
+}> = ({ lesson, streak, userSettings, finishedCount, initialSession, onComplete, onSaveProgress, onClose }) => {
+  // Initialize state based on saved session or defaults
+  const [step, setStep] = useState<'intro' | 'quiz' | 'finish' | 'chest'>(() => {
+    if (initialSession && initialSession.qIndex > 0) return 'quiz';
+    return 'intro';
+  });
+  const [qIndex, setQIndex] = useState(() => initialSession ? initialSession.qIndex : 0);
   
   // Stats Tracking
+  // Current session start time. Total time = accumulatedTime + (now - startTime)
   const startTimeRef = useRef<number>(Date.now());
-  const [mistakesByCat, setMistakesByCat] = useState<Record<QuestionCategory, number>>({
-    basic: 0, application: 0, logic: 0, sentence: 0, word: 0
-  });
-  const [currentCombo, setCurrentCombo] = useState(0);
-  const [maxCombo, setMaxCombo] = useState(0);
+  const accumulatedTimeRef = useRef<number>(initialSession ? initialSession.accumulatedTime : 0);
 
+  const [mistakesByCat, setMistakesByCat] = useState<Record<QuestionCategory, number>>(() => 
+    initialSession ? initialSession.mistakesByCat : { basic: 0, application: 0, logic: 0, sentence: 0, word: 0 }
+  );
+  const [currentCombo, setCurrentCombo] = useState(() => initialSession ? initialSession.currentCombo : 0);
+  const [maxCombo, setMaxCombo] = useState(() => initialSession ? initialSession.maxCombo : 0);
+
+  const [feedback, setFeedback] = useState<{msg: string, ok: boolean} | null>(null);
+  
   // Chest / Reward State
   const [chestOpened, setChestOpened] = useState(false);
   const [wonReward, setWonReward] = useState<{type: string, name: string, icon: string} | null>(null);
@@ -152,6 +161,29 @@ const LessonViewer: React.FC<{
   const [blankBank, setBlankBank] = useState<string[]>([]);
 
   const q = lesson.questions[qIndex];
+
+  // Helper to calculate current total time
+  const calculateTotalTime = () => {
+    return Math.floor(accumulatedTimeRef.current + (Date.now() - startTimeRef.current) / 1000);
+  };
+
+  // Helper to construct current state object
+  const getCurrentSessionState = (): SessionState => ({
+    day: lesson.day,
+    qIndex,
+    mistakesByCat,
+    currentCombo,
+    maxCombo,
+    accumulatedTime: calculateTotalTime()
+  });
+
+  // Save progress when user explicitly closes
+  const handleClose = () => {
+    if (step === 'quiz') {
+      onSaveProgress(getCurrentSessionState());
+    }
+    onClose();
+  };
 
   // Initialize states when question changes
   useEffect(() => {
@@ -278,7 +310,18 @@ const LessonViewer: React.FC<{
   const handleNext = () => {
     playClick();
     if (qIndex < lesson.questions.length - 1) {
-      setQIndex(qIndex + 1);
+      const nextQ = qIndex + 1;
+      setQIndex(nextQ);
+      // Auto-save progress when moving to next question
+      // We need to calculate state manually here because React state updates (qIndex) are async
+      onSaveProgress({
+        day: lesson.day,
+        qIndex: nextQ,
+        mistakesByCat,
+        currentCombo,
+        maxCombo,
+        accumulatedTime: calculateTotalTime()
+      });
     } else {
       playFanfare();
       setStep('finish');
@@ -357,10 +400,10 @@ const LessonViewer: React.FC<{
 
     // Wait a bit then finish
     setTimeout(() => {
-       const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
+       const totalTimeSpent = calculateTotalTime();
        onComplete(lesson.points, lesson.questions.map(q => q.id), { 
           day: lesson.day,
-          timeSpent, 
+          timeSpent: totalTimeSpent, 
           mistakesByCat, 
           maxCombo, 
           timestamp: Date.now() 
@@ -429,7 +472,7 @@ const LessonViewer: React.FC<{
     <div className="fixed inset-0 z-[100] bg-white flex flex-col font-standard overflow-hidden">
       {/* Top Bar */}
       <div className="px-3 py-2 md:p-4 border-b flex justify-between items-center bg-sky-50 h-14 shrink-0">
-        <button onClick={() => { playClick(); onClose(); }} className="text-2xl md:text-4xl text-sky-400 hover:text-sky-600 w-8">✕</button>
+        <button onClick={() => { playClick(); handleClose(); }} className="text-2xl md:text-4xl text-sky-400 hover:text-sky-600 w-8">✕</button>
         <div className="flex-1 px-4 md:px-8">
            <div className="h-3 md:h-4 bg-white rounded-full overflow-hidden border">
               <div className="h-full bg-sky-400 transition-all duration-500" style={{ width: `${((qIndex + 1) / lesson.questions.length) * 100}%` }}></div>
@@ -586,7 +629,12 @@ const LessonViewer: React.FC<{
   );
 };
 
+// ... (ProfileView, StoreView, IslandMap components remain mostly unchanged, just ensuring types match)
+// Only needed snippets for context...
+
 const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
+  // ... (No changes needed in ProfileView logic, just reusing existing code)
+  // Re-implementing the existing ProfileView for completeness of file
   const [editing, setEditing] = useState(false);
   const [nameVal, setNameVal] = useState(user.name);
   const [showParentSettings, setShowParentSettings] = useState(false);
@@ -595,7 +643,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   const [tempSettings, setTempSettings] = useState<ParentSettings>(user.parentSettings || DEFAULT_SETTINGS);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   
-  // Custom Reward Form
   const [newRewardName, setNewRewardName] = useState('');
   const [newRewardProb, setNewRewardProb] = useState(10);
 
@@ -646,7 +693,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
     }));
   };
 
-  // Stats Calculations
   const historyValues = Object.values(user.statsHistory || {}) as DailyStats[];
   const totalMistakes = historyValues.reduce((acc, day) => acc + day.mistakes, 0);
   const totalTime = historyValues.reduce((acc, day) => acc + day.timeSpentSeconds, 0);
@@ -661,7 +707,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   });
   const maxMistakeVal = Math.max(...(Object.values(mistakeDist) as number[]), 1);
 
-  // Last Level Stats
   const lastLevel = user.lastLevelStats;
   const lastLevelMins = lastLevel ? Math.floor(lastLevel.timeSpent / 60) : 0;
   const lastLevelSecs = lastLevel ? lastLevel.timeSpent % 60 : 0;
@@ -693,7 +738,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
        
        {!showParentSettings ? (
          <>
-          {/* Header */}
           <div 
             onClick={() => { playClick(); setShowAvatarSelector(true); }}
             className="mt-10 md:mt-10 w-32 h-32 md:w-40 md:h-40 bg-sky-50 rounded-[2rem] md:rounded-[3rem] flex items-center justify-center text-[4rem] md:text-[5rem] border-[6px] md:border-[8px] border-white shadow-xl cursor-pointer relative group active:scale-95 transition-transform"
@@ -702,7 +746,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
             <div className="absolute bottom-2 right-2 bg-white text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full border shadow-sm group-hover:bg-sky-50">更换</div>
           </div>
           
-          {/* Name Editor */}
           {editing ? (
             <div className="flex gap-2 mt-4 md:mt-4 items-center animate-pop">
                 <input 
@@ -728,9 +771,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
             </div>
           )}
 
-          {/* Stats Grid */}
           <div className="mt-8 md:mt-8 w-full max-w-2xl grid grid-cols-2 gap-4">
-             {/* Total Stats */}
              <div className="bg-orange-50 p-4 rounded-2xl border-2 border-orange-100 flex flex-col items-center">
                 <span className="text-4xl mb-1">🔥</span>
                 <span className="text-3xl font-black text-orange-600">{user.streak}</span>
@@ -742,7 +783,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                 <span className="text-xs text-sky-400 font-bold uppercase">总学习时长</span>
              </div>
 
-             {/* All Time Mistakes */}
              <div className="bg-red-50 p-4 rounded-2xl border-2 border-red-100 flex flex-col items-center col-span-2">
                 <div className="w-full flex justify-between items-end mb-2 px-2">
                    <span className="font-bold text-red-800">总错题分布</span>
@@ -751,7 +791,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                 {renderBarChart(mistakeDist, maxMistakeVal, 'bg-red-50', 'bg-red-300')}
              </div>
 
-             {/* Last Level Stats */}
              <div className="col-span-2 mt-2">
                <h3 className="font-black text-gray-500 text-lg mb-2 pl-2 border-l-4 border-green-400">上一关表现 {lastLevel && <span className="text-sm font-normal text-gray-400">Day {lastLevel.day}</span>}</h3>
                {lastLevel ? (
@@ -781,7 +820,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
              </div>
           </div>
           
-          {/* Avatar Selector Modal */}
           {showAvatarSelector && (
             <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowAvatarSelector(false)}>
               <div className="bg-white p-6 rounded-[2rem] w-full max-w-sm border-4 border-sky-100 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -806,7 +844,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
           )}
          </>
        ) : (
-         /* Parent Settings Modal Content */
          <div className="mt-10 md:mt-20 w-full max-w-xl animate-pop pb-20">
            <h2 className="text-3xl font-black text-gray-700 mb-6 text-center">家长设置 ⚙️</h2>
            {!settingsUnlocked ? (
@@ -858,7 +895,6 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                   </div>
                 </div>
 
-                {/* Custom Rewards Section */}
                 <div>
                   <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">🎁 宝箱奖励设置</h3>
                   <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 mb-4">
@@ -921,323 +957,310 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   );
 };
 
+// ... (StoreView and IslandMap remain mostly the same, ensuring imports)
 const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'avatar' | 'cards' | 'bag' | 'deco'>('deco'); // Changed default from 'bag' to 'deco'
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-
-  const selectedCard = ACHIEVEMENT_CARDS.find(c => c.id === selectedCardId);
-
-  const stickers = user.inventory?.filter(i => i.type === 'sticker') || [];
-  const coupons = user.inventory?.filter(i => i.type === 'custom_coupon') || [];
-
-  return (
-    <div className="fixed inset-0 z-[100] bg-sky-50 flex flex-col items-center overflow-hidden font-standard">
-      {/* Top Bar */}
-       <div className="w-full p-4 flex justify-between items-center z-10 bg-sky-50/90 backdrop-blur-sm">
-         <button onClick={() => { playClick(); onClose(); }} className="text-3xl md:text-5xl text-gray-300 hover:text-gray-500">✕</button>
-         <h2 className="text-2xl md:text-4xl font-black text-amber-600 font-playful">✨ 宝藏店 ✨</h2>
-         <div className="w-8"></div>
-       </div>
-
-       {/* Tabs */}
-       <div className="flex gap-2 md:gap-4 mb-4 md:mb-6 p-1 bg-white rounded-xl border-2 border-amber-100 shadow-sm overflow-x-auto max-w-full">
-          <button 
-            onClick={() => { playClick(); setActiveTab('deco'); }}
-            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'deco' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
-          >
-            装饰岛屿 🏰
-          </button>
-          <button 
-            onClick={() => { playClick(); setActiveTab('avatar'); }}
-            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'avatar' ? 'bg-sky-100 text-sky-600' : 'text-gray-400'}`}
-          >
-            魔法皮肤 👕
-          </button>
-          <button 
-            onClick={() => { playClick(); setActiveTab('cards'); }}
-            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'cards' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
-          >
-            荣誉卡片 🏆
-          </button>
-          <button 
-            onClick={() => { playClick(); setActiveTab('bag'); }}
-            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'bag' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
-          >
-            我的背包 🎒
-          </button>
-       </div>
-
-       {/* Content Area */}
-       <div className="flex-1 w-full overflow-y-auto px-4 pb-20 flex flex-col items-center">
-          <div className="w-full max-w-5xl">
-
-            {/* Island Decoration Shop Tab */}
-            {activeTab === 'deco' && (
-              <div className="animate-fade-in space-y-6">
-                 {/* Themes */}
-                 <div className="bg-white p-4 rounded-3xl border-4 border-sky-100">
-                   <h3 className="font-black text-lg mb-4 text-sky-800">🌈 岛屿主题</h3>
-                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {DECORATIONS.filter(d => d.type === 'theme').map(d => {
-                        const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
-                        const active = user.activeDecorations.theme === d.id;
-                        return (
-                          <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-sky-50 border-sky-500' : 'bg-gray-50 border-gray-100'}`}>
-                             <div className="text-4xl">{d.icon}</div>
-                             <span className="font-bold text-sm text-gray-700">{d.name}</span>
-                             <button
-                               onClick={() => {
-                                 if (active) {
-                                   if (d.id !== 'theme_sky') {
-                                      playClick();
-                                      setUser({...user, activeDecorations: {...user.activeDecorations, theme: 'theme_sky'}});
-                                   }
-                                   return;
-                                 }
-                                 if (owned) {
-                                   playClick();
-                                   setUser({...user, activeDecorations: {...user.activeDecorations, theme: d.id}});
-                                 } else if (user.stars >= d.cost) {
-                                   playUnlock();
-                                   setUser({
-                                     ...user, 
-                                     stars: user.stars - d.cost, 
-                                     unlockedItems: [...user.unlockedItems, d.id],
-                                     activeDecorations: {...user.activeDecorations, theme: d.id}
-                                   });
-                                 }
-                               }}
-                               className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
-                             >
-                               {active ? '使用中' : owned ? '使用' : `${d.cost} ⭐`}
-                             </button>
-                          </div>
-                        )
-                      })}
-                   </div>
-                 </div>
-
-                 {/* Buildings */}
-                 <div className="bg-white p-4 rounded-3xl border-4 border-amber-100">
-                   <h3 className="font-black text-lg mb-4 text-amber-800">🏠 岛屿建筑</h3>
-                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {DECORATIONS.filter(d => d.type === 'building').map(d => {
-                        const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
-                        const active = user.activeDecorations.building === d.id;
-                        return (
-                          <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-amber-50 border-amber-500' : 'bg-gray-50 border-gray-100'}`}>
-                             <div className="text-4xl">{d.icon}</div>
-                             <span className="font-bold text-sm text-gray-700">{d.name}</span>
-                             <button
-                               onClick={() => {
-                                 if (active) {
-                                   // Allow deselecting
-                                   playClick();
-                                   setUser({...user, activeDecorations: {...user.activeDecorations, building: ''}});
-                                   return;
-                                 }
-                                 if (owned) {
-                                   playClick();
-                                   setUser({...user, activeDecorations: {...user.activeDecorations, building: d.id}});
-                                 } else if (user.stars >= d.cost) {
-                                   playUnlock();
-                                   setUser({
-                                     ...user, 
-                                     stars: user.stars - d.cost, 
-                                     unlockedItems: [...user.unlockedItems, d.id],
-                                     activeDecorations: {...user.activeDecorations, building: d.id}
-                                   });
-                                 }
-                               }}
-                               className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
-                             >
-                               {active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}
-                             </button>
-                          </div>
-                        )
-                      })}
-                   </div>
-                 </div>
-
-                 {/* Pets */}
-                 <div className="bg-white p-4 rounded-3xl border-4 border-rose-100">
-                   <h3 className="font-black text-lg mb-4 text-rose-800">🐾 岛屿宠物</h3>
-                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {DECORATIONS.filter(d => d.type === 'pet').map(d => {
-                        const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
-                        const active = user.activeDecorations.pet === d.id;
-                        return (
-                          <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-rose-50 border-rose-500' : 'bg-gray-50 border-gray-100'}`}>
-                             <div className="text-4xl">{d.icon}</div>
-                             <span className="font-bold text-sm text-gray-700">{d.name}</span>
-                             <button
-                               onClick={() => {
-                                 if (active) {
-                                   // Allow deselecting
-                                   playClick();
-                                   setUser({...user, activeDecorations: {...user.activeDecorations, pet: ''}});
-                                   return;
-                                 }
-                                 if (owned) {
-                                   playClick();
-                                   setUser({...user, activeDecorations: {...user.activeDecorations, pet: d.id}});
-                                 } else if (user.stars >= d.cost) {
-                                   playUnlock();
-                                   setUser({
-                                     ...user, 
-                                     stars: user.stars - d.cost, 
-                                     unlockedItems: [...user.unlockedItems, d.id],
-                                     activeDecorations: {...user.activeDecorations, pet: d.id}
-                                   });
-                                 }
-                               }}
-                               className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
-                             >
-                               {active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}
-                             </button>
-                          </div>
-                        )
-                      })}
-                   </div>
-                 </div>
-              </div>
-            )}
-            
-            {/* Avatars Tab */}
-            {activeTab === 'avatar' && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 animate-fade-in">
-                {AVATARS.map(a => {
-                  const owned = user.unlockedItems.includes(a.id);
-                  return (
-                    <div key={a.id} className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] shadow-xl flex flex-col items-center gap-4 md:gap-6 border-4 border-white">
-                      <div className="text-6xl md:text-8xl">{a.icon}</div>
-                      <button 
-                          disabled={owned && user.avatar === a.icon}
-                          onClick={() => {
-                            if (owned) {
-                              playClick();
-                              setUser({...user, avatar: a.icon});
-                            } else if (user.stars >= a.cost) {
-                              playUnlock();
-                              setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
-                            }
-                          }}
-                          className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-lg md:text-xl transition-all ${user.avatar === a.icon ? 'bg-sky-100 text-sky-500' : owned ? 'bg-sky-500 text-white' : user.stars >= a.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
-                      >
-                        {user.avatar === a.icon ? '使用中' : owned ? '更换' : `${a.cost} ⭐`}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Achievement Cards Tab */}
-            {activeTab === 'cards' && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 animate-fade-in">
-                {ACHIEVEMENT_CARDS.map(card => {
-                  const unlocked = user.unlockedAchievements?.includes(card.id);
-                  return (
-                    <div 
-                      key={card.id} 
-                      onClick={() => {
-                        if (unlocked) {
-                          playClick();
-                          setSelectedCardId(card.id);
-                        }
-                      }}
-                      className={`relative aspect-[3/4] rounded-2xl border-4 transition-all duration-300 flex flex-col items-center justify-center p-2 text-center group ${unlocked ? 'bg-white border-white shadow-xl cursor-pointer hover:scale-105 rotate-0' : 'bg-gray-200 border-gray-300 opacity-80 cursor-not-allowed grayscale'}`}
-                    >
-                       <div className="text-4xl md:text-6xl mb-2">{unlocked ? card.icon : '🔒'}</div>
-                       <h3 className={`font-black text-sm md:text-lg mb-1 ${unlocked ? 'text-gray-800' : 'text-gray-500'}`}>{card.title}</h3>
-                       {!unlocked && (
-                         <div className="absolute inset-0 bg-gray-900/10 rounded-xl flex items-end justify-center p-2">
-                            <span className="text-[10px] md:text-xs font-bold text-white bg-gray-600 px-2 py-1 rounded-full">{card.conditionText}</span>
-                         </div>
-                       )}
-                       {unlocked && <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">点击查看</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Inventory Bag Tab */}
-            {activeTab === 'bag' && (
-               <div className="space-y-8 animate-fade-in">
-                  
-                  {/* Coupons Section */}
-                  <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-sky-100">
-                     <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
-                        🎟️ 兑换券 <span className="text-sm font-normal text-gray-400">(找爸爸妈妈兑换)</span>
-                     </h3>
-                     {coupons.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">还未获得兑换券，去闯关开宝箱吧！</div>
-                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                           {coupons.map(c => (
-                             <div key={c.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl shadow-sm">
-                                <div className="text-3xl bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-sm">🎁</div>
-                                <div className="flex-1">
-                                   <div className="font-bold text-orange-800">{c.name}</div>
-                                   <div className="text-xs text-orange-500">{new Date(c.obtainedAt).toLocaleDateString()} 获得</div>
-                                </div>
-                                <button 
-                                  onClick={() => {
-                                     if(confirm('确定要兑换并消耗这张券吗？')) {
-                                       setUser({...user, inventory: user.inventory.filter(i => i.id !== c.id)});
+    // Same implementation as before
+    const [activeTab, setActiveTab] = useState<'avatar' | 'cards' | 'bag' | 'deco'>('deco');
+    const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  
+    const selectedCard = ACHIEVEMENT_CARDS.find(c => c.id === selectedCardId);
+  
+    const stickers = user.inventory?.filter(i => i.type === 'sticker') || [];
+    const coupons = user.inventory?.filter(i => i.type === 'custom_coupon') || [];
+  
+    return (
+      <div className="fixed inset-0 z-[100] bg-sky-50 flex flex-col items-center overflow-hidden font-standard">
+         <div className="w-full p-4 flex justify-between items-center z-10 bg-sky-50/90 backdrop-blur-sm">
+           <button onClick={() => { playClick(); onClose(); }} className="text-3xl md:text-5xl text-gray-300 hover:text-gray-500">✕</button>
+           <h2 className="text-2xl md:text-4xl font-black text-amber-600 font-playful">✨ 宝藏店 ✨</h2>
+           <div className="w-8"></div>
+         </div>
+  
+         <div className="flex gap-2 md:gap-4 mb-4 md:mb-6 p-1 bg-white rounded-xl border-2 border-amber-100 shadow-sm overflow-x-auto max-w-full">
+            <button 
+              onClick={() => { playClick(); setActiveTab('deco'); }}
+              className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'deco' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
+            >
+              装饰岛屿 🏰
+            </button>
+            <button 
+              onClick={() => { playClick(); setActiveTab('avatar'); }}
+              className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'avatar' ? 'bg-sky-100 text-sky-600' : 'text-gray-400'}`}
+            >
+              魔法皮肤 👕
+            </button>
+            <button 
+              onClick={() => { playClick(); setActiveTab('cards'); }}
+              className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'cards' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
+            >
+              荣誉卡片 🏆
+            </button>
+            <button 
+              onClick={() => { playClick(); setActiveTab('bag'); }}
+              className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'bag' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
+            >
+              我的背包 🎒
+            </button>
+         </div>
+  
+         <div className="flex-1 w-full overflow-y-auto px-4 pb-20 flex flex-col items-center">
+            <div className="w-full max-w-5xl">
+  
+              {activeTab === 'deco' && (
+                <div className="animate-fade-in space-y-6">
+                   <div className="bg-white p-4 rounded-3xl border-4 border-sky-100">
+                     <h3 className="font-black text-lg mb-4 text-sky-800">🌈 岛屿主题</h3>
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {DECORATIONS.filter(d => d.type === 'theme').map(d => {
+                          const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
+                          const active = user.activeDecorations.theme === d.id;
+                          return (
+                            <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-sky-50 border-sky-500' : 'bg-gray-50 border-gray-100'}`}>
+                               <div className="text-4xl">{d.icon}</div>
+                               <span className="font-bold text-sm text-gray-700">{d.name}</span>
+                               <button
+                                 onClick={() => {
+                                   if (active) {
+                                     if (d.id !== 'theme_sky') {
+                                        playClick();
+                                        setUser({...user, activeDecorations: {...user.activeDecorations, theme: 'theme_sky'}});
                                      }
-                                  }}
-                                  className="px-3 py-1 bg-white text-orange-600 text-xs font-bold rounded-full border border-orange-200 active:scale-95"
-                                >
-                                   兑换
-                                </button>
-                             </div>
-                           ))}
-                        </div>
-                     )}
-                  </div>
-
-                  {/* Stickers Section */}
-                  <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-indigo-100">
-                     <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
-                        🦄 贴纸集 <span className="text-sm font-normal text-gray-400">({stickers.length}个)</span>
-                     </h3>
-                     {stickers.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">空空如也</div>
-                     ) : (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                           {stickers.map(s => (
-                             <div key={s.id} className="aspect-square flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl border border-indigo-100 p-2">
-                                <div className="text-4xl md:text-5xl mb-1 animate-pop">{s.icon}</div>
-                                <div className="text-[10px] md:text-xs text-indigo-400 font-bold text-center truncate w-full">{s.name}</div>
-                             </div>
-                           ))}
-                        </div>
-                     )}
-                  </div>
-
-               </div>
-            )}
-          </div>
-       </div>
-
-       {/* Card Detail Modal */}
-       {selectedCard && (
-         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedCardId(null)}>
-            <div className={`w-full max-w-sm ${selectedCard.colorClass} border-4 bg-white p-8 rounded-[2rem] shadow-2xl transform transition-all scale-100 flex flex-col items-center text-center relative`} onClick={e => e.stopPropagation()}>
-               <button onClick={() => setSelectedCardId(null)} className="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100">✕</button>
-               <div className="text-[6rem] mb-4 animate-bounce">{selectedCard.icon}</div>
-               <h2 className="text-3xl font-black mb-2">{selectedCard.title}</h2>
-               <div className="w-16 h-1 bg-current opacity-20 rounded-full mb-6"></div>
-               <p className="text-xl font-bold leading-relaxed opacity-90">{selectedCard.message}</p>
-               <div className="mt-8 text-xs font-bold uppercase tracking-widest opacity-50">Honor Card</div>
+                                     return;
+                                   }
+                                   if (owned) {
+                                     playClick();
+                                     setUser({...user, activeDecorations: {...user.activeDecorations, theme: d.id}});
+                                   } else if (user.stars >= d.cost) {
+                                     playUnlock();
+                                     setUser({
+                                       ...user, 
+                                       stars: user.stars - d.cost, 
+                                       unlockedItems: [...user.unlockedItems, d.id],
+                                       activeDecorations: {...user.activeDecorations, theme: d.id}
+                                     });
+                                   }
+                                 }}
+                                 className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                               >
+                                 {active ? '使用中' : owned ? '使用' : `${d.cost} ⭐`}
+                               </button>
+                            </div>
+                          )
+                        })}
+                     </div>
+                   </div>
+  
+                   <div className="bg-white p-4 rounded-3xl border-4 border-amber-100">
+                     <h3 className="font-black text-lg mb-4 text-amber-800">🏠 岛屿建筑</h3>
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {DECORATIONS.filter(d => d.type === 'building').map(d => {
+                          const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
+                          const active = user.activeDecorations.building === d.id;
+                          return (
+                            <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-amber-50 border-amber-500' : 'bg-gray-50 border-gray-100'}`}>
+                               <div className="text-4xl">{d.icon}</div>
+                               <span className="font-bold text-sm text-gray-700">{d.name}</span>
+                               <button
+                                 onClick={() => {
+                                   if (active) {
+                                     playClick();
+                                     setUser({...user, activeDecorations: {...user.activeDecorations, building: ''}});
+                                     return;
+                                   }
+                                   if (owned) {
+                                     playClick();
+                                     setUser({...user, activeDecorations: {...user.activeDecorations, building: d.id}});
+                                   } else if (user.stars >= d.cost) {
+                                     playUnlock();
+                                     setUser({
+                                       ...user, 
+                                       stars: user.stars - d.cost, 
+                                       unlockedItems: [...user.unlockedItems, d.id],
+                                       activeDecorations: {...user.activeDecorations, building: d.id}
+                                     });
+                                   }
+                                 }}
+                                 className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                               >
+                                 {active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}
+                               </button>
+                            </div>
+                          )
+                        })}
+                     </div>
+                   </div>
+  
+                   <div className="bg-white p-4 rounded-3xl border-4 border-rose-100">
+                     <h3 className="font-black text-lg mb-4 text-rose-800">🐾 岛屿宠物</h3>
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {DECORATIONS.filter(d => d.type === 'pet').map(d => {
+                          const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
+                          const active = user.activeDecorations.pet === d.id;
+                          return (
+                            <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-rose-50 border-rose-500' : 'bg-gray-50 border-gray-100'}`}>
+                               <div className="text-4xl">{d.icon}</div>
+                               <span className="font-bold text-sm text-gray-700">{d.name}</span>
+                               <button
+                                 onClick={() => {
+                                   if (active) {
+                                     playClick();
+                                     setUser({...user, activeDecorations: {...user.activeDecorations, pet: ''}});
+                                     return;
+                                   }
+                                   if (owned) {
+                                     playClick();
+                                     setUser({...user, activeDecorations: {...user.activeDecorations, pet: d.id}});
+                                   } else if (user.stars >= d.cost) {
+                                     playUnlock();
+                                     setUser({
+                                       ...user, 
+                                       stars: user.stars - d.cost, 
+                                       unlockedItems: [...user.unlockedItems, d.id],
+                                       activeDecorations: {...user.activeDecorations, pet: d.id}
+                                     });
+                                   }
+                                 }}
+                                 className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                               >
+                                 {active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}
+                               </button>
+                            </div>
+                          )
+                        })}
+                     </div>
+                   </div>
+                </div>
+              )}
+              
+              {activeTab === 'avatar' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 animate-fade-in">
+                  {AVATARS.map(a => {
+                    const owned = user.unlockedItems.includes(a.id);
+                    return (
+                      <div key={a.id} className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] shadow-xl flex flex-col items-center gap-4 md:gap-6 border-4 border-white">
+                        <div className="text-6xl md:text-8xl">{a.icon}</div>
+                        <button 
+                            disabled={owned && user.avatar === a.icon}
+                            onClick={() => {
+                              if (owned) {
+                                playClick();
+                                setUser({...user, avatar: a.icon});
+                              } else if (user.stars >= a.cost) {
+                                playUnlock();
+                                setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
+                              }
+                            }}
+                            className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-lg md:text-xl transition-all ${user.avatar === a.icon ? 'bg-sky-100 text-sky-500' : owned ? 'bg-sky-500 text-white' : user.stars >= a.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                        >
+                          {user.avatar === a.icon ? '使用中' : owned ? '更换' : `${a.cost} ⭐`}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+  
+              {activeTab === 'cards' && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 animate-fade-in">
+                  {ACHIEVEMENT_CARDS.map(card => {
+                    const unlocked = user.unlockedAchievements?.includes(card.id);
+                    return (
+                      <div 
+                        key={card.id} 
+                        onClick={() => {
+                          if (unlocked) {
+                            playClick();
+                            setSelectedCardId(card.id);
+                          }
+                        }}
+                        className={`relative aspect-[3/4] rounded-2xl border-4 transition-all duration-300 flex flex-col items-center justify-center p-2 text-center group ${unlocked ? 'bg-white border-white shadow-xl cursor-pointer hover:scale-105 rotate-0' : 'bg-gray-200 border-gray-300 opacity-80 cursor-not-allowed grayscale'}`}
+                      >
+                         <div className="text-4xl md:text-6xl mb-2">{unlocked ? card.icon : '🔒'}</div>
+                         <h3 className={`font-black text-sm md:text-lg mb-1 ${unlocked ? 'text-gray-800' : 'text-gray-500'}`}>{card.title}</h3>
+                         {!unlocked && (
+                           <div className="absolute inset-0 bg-gray-900/10 rounded-xl flex items-end justify-center p-2">
+                              <span className="text-[10px] md:text-xs font-bold text-white bg-gray-600 px-2 py-1 rounded-full">{card.conditionText}</span>
+                           </div>
+                         )}
+                         {unlocked && <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">点击查看</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+  
+              {activeTab === 'bag' && (
+                 <div className="space-y-8 animate-fade-in">
+                    
+                    <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-sky-100">
+                       <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
+                          🎟️ 兑换券 <span className="text-sm font-normal text-gray-400">(找爸爸妈妈兑换)</span>
+                       </h3>
+                       {coupons.length === 0 ? (
+                          <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">还未获得兑换券，去闯关开宝箱吧！</div>
+                       ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                             {coupons.map(c => (
+                               <div key={c.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl shadow-sm">
+                                  <div className="text-3xl bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-sm">🎁</div>
+                                  <div className="flex-1">
+                                     <div className="font-bold text-orange-800">{c.name}</div>
+                                     <div className="text-xs text-orange-500">{new Date(c.obtainedAt).toLocaleDateString()} 获得</div>
+                                  </div>
+                                  <button 
+                                    onClick={() => {
+                                       if(confirm('确定要兑换并消耗这张券吗？')) {
+                                         setUser({...user, inventory: user.inventory.filter(i => i.id !== c.id)});
+                                       }
+                                    }}
+                                    className="px-3 py-1 bg-white text-orange-600 text-xs font-bold rounded-full border border-orange-200 active:scale-95"
+                                  >
+                                     兑换
+                                  </button>
+                               </div>
+                             ))}
+                          </div>
+                       )}
+                    </div>
+  
+                    <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-indigo-100">
+                       <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
+                          🦄 贴纸集 <span className="text-sm font-normal text-gray-400">({stickers.length}个)</span>
+                       </h3>
+                       {stickers.length === 0 ? (
+                          <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">空空如也</div>
+                       ) : (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                             {stickers.map(s => (
+                               <div key={s.id} className="aspect-square flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl border border-indigo-100 p-2">
+                                  <div className="text-4xl md:text-5xl mb-1 animate-pop">{s.icon}</div>
+                                  <div className="text-[10px] md:text-xs text-indigo-400 font-bold text-center truncate w-full">{s.name}</div>
+                               </div>
+                             ))}
+                          </div>
+                       )}
+                    </div>
+  
+                 </div>
+              )}
             </div>
          </div>
-       )}
-    </div>
-  );
-};
+  
+         {selectedCard && (
+           <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedCardId(null)}>
+              <div className={`w-full max-w-sm ${selectedCard.colorClass} border-4 bg-white p-8 rounded-[2rem] shadow-2xl transform transition-all scale-100 flex flex-col items-center text-center relative`} onClick={e => e.stopPropagation()}>
+                 <button onClick={() => setSelectedCardId(null)} className="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100">✕</button>
+                 <div className="text-[6rem] mb-4 animate-bounce">{selectedCard.icon}</div>
+                 <h2 className="text-3xl font-black mb-2">{selectedCard.title}</h2>
+                 <div className="w-16 h-1 bg-current opacity-20 rounded-full mb-6"></div>
+                 <p className="text-xl font-bold leading-relaxed opacity-90">{selectedCard.message}</p>
+                 <div className="mt-8 text-xs font-bold uppercase tracking-widest opacity-50">Honor Card</div>
+              </div>
+           </div>
+         )}
+      </div>
+    );
+  };
 
 const IslandMap: React.FC<{ user: UserState; onSelectDay: (d: number) => void; setView: (v: View) => void }> = ({ user, onSelectDay, setView }) => {
   const finished = user.courseProgress[user.activeCourseId] || [];
@@ -1294,7 +1317,8 @@ export default function App() {
         parentSettings: parsed.parentSettings || DEFAULT_SETTINGS,
         unlockedAchievements: parsed.unlockedAchievements || [],
         inventory: parsed.inventory || [],
-        activeDecorations: parsed.activeDecorations || { theme: 'theme_sky', pet: '', building: '' }
+        activeDecorations: parsed.activeDecorations || { theme: 'theme_sky', pet: '', building: '' },
+        currentSession: parsed.currentSession
       };
     }
     return { 
@@ -1312,7 +1336,8 @@ export default function App() {
       lastLoginDate: '',
       statsHistory: {},
       parentSettings: DEFAULT_SETTINGS,
-      activeDecorations: { theme: 'theme_sky', pet: 'pet_bird', building: 'build_tent' }
+      activeDecorations: { theme: 'theme_sky', pet: 'pet_bird', building: 'build_tent' },
+      currentSession: undefined
     };
   });
 
@@ -1343,6 +1368,14 @@ export default function App() {
 
   useEffect(() => localStorage.setItem('quest_island_v10', JSON.stringify(user)), [user]);
 
+  // Determine if we should resume from a previous session
+  const getResumeSession = (day: number) => {
+    if (user.currentSession && user.currentSession.day === day) {
+      return user.currentSession;
+    }
+    return undefined;
+  };
+
   return (
     <div className="min-h-screen font-standard bg-sky-50">
       <Header user={user} setView={setView} />
@@ -1355,6 +1388,13 @@ export default function App() {
           streak={user.streak}
           userSettings={user.parentSettings}
           finishedCount={(user.courseProgress[user.activeCourseId] || []).length}
+          initialSession={getResumeSession(selectedDay)}
+          onSaveProgress={(state: SessionState) => {
+            setUser(prev => ({
+              ...prev,
+              currentSession: state
+            }));
+          }}
           // Fix: Explicitly type callback arguments to ensure correct arithmetic operations
           onComplete={(p, qIds, lessonStats: LevelStats, reward: InventoryItem | null) => {
             const today = getTodayStr();
@@ -1413,7 +1453,8 @@ export default function App() {
               },
               lastLevelStats: lessonStats,
               unlockedAchievements: newUnlocks,
-              inventory: newInventory
+              inventory: newInventory,
+              currentSession: undefined // Clear saved session on completion
             }));
             setView(View.MAP);
           }}

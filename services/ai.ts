@@ -1,1 +1,0 @@
-// 文件已移除，不再使用 Google GenAI SDK

@@ -85,6 +85,16 @@ export interface AchievementCard {
   colorClass: string; // Tailwind classes for background/border
 }
 
+// New Interface for saving in-progress level state
+export interface SessionState {
+  day: number;
+  qIndex: number;
+  mistakesByCat: Record<QuestionCategory, number>;
+  currentCombo: number;
+  maxCombo: number;
+  accumulatedTime: number; // Time spent in previous sessions for this level
+}
+
 export interface UserState {
   name: string;
   avatar: string;
@@ -112,6 +122,9 @@ export interface UserState {
     pet: string;
     building: string;
   };
+  
+  // Progress Resume State
+  currentSession?: SessionState;
 }
 
 export enum View {
