@@ -1,5 +1,5 @@
 
-import { Course, Lesson, Question, ParentSettings, QuestionCategory, AchievementCard } from './types';
+import { Course, Lesson, Question, ParentSettings, QuestionCategory, AchievementCard, DecorationItem } from './types';
 import { QUESTION_BANK } from './questions';
 
 export const COURSES: Course[] = [
@@ -14,8 +14,55 @@ export const DEFAULT_SETTINGS: ParentSettings = {
     'sentence': 1,
     'word': 1
   },
-  shuffleQuestions: true
+  shuffleQuestions: true,
+  customRewards: [
+    { id: 'r1', name: '奖励1元零花钱', probability: 20 },
+    { id: 'r2', name: '看动画片20分钟', probability: 30 }
+  ]
 };
+
+export const STICKERS = [
+  { id: 's1', icon: '🦕', name: '小恐龙' },
+  { id: 's2', icon: '🦄', name: '独角兽' },
+  { id: 's3', icon: '🤖', name: '机器人' },
+  { id: 's4', icon: '👽', name: '外星人' },
+  { id: 's5', icon: '🐳', name: '喷水鲸' },
+  { id: 's6', icon: '🦋', name: '彩蝶' },
+  { id: 's7', icon: '🚀', name: '小火箭' },
+  { id: 's8', icon: '🎪', name: '马戏团' },
+  { id: 's9', icon: '🎨', name: '调色盘' },
+  { id: 's10', icon: '🍔', name: '汉堡包' },
+];
+
+export const AVATARS = [
+  { id: 'cat', icon: '🐱', cost: 0 },
+  { id: 'dog', icon: '🐶', cost: 100 },
+  { id: 'lion', icon: '🦁', cost: 300 },
+  { id: 'owl', icon: '🦉', cost: 500 },
+  { id: 'unicorn', icon: '🦄', cost: 1000 },
+];
+
+export const DECORATIONS: DecorationItem[] = [
+  // Themes (Backgrounds)
+  { id: 'theme_sky', type: 'theme', name: '蓝天岛', icon: '🌤️', cost: 0, styleClass: 'bg-sky-50' },
+  { id: 'theme_forest', type: 'theme', name: '森林岛', icon: '🌲', cost: 200, styleClass: 'bg-green-50' },
+  { id: 'theme_sunset', type: 'theme', name: '夕阳岛', icon: '🌇', cost: 400, styleClass: 'bg-orange-50' },
+  { id: 'theme_dream', type: 'theme', name: '梦幻岛', icon: '🦄', cost: 800, styleClass: 'bg-purple-50' },
+  
+  // Pets (Floating companions)
+  { id: 'pet_bird', type: 'pet', name: '小蓝鸟', icon: '🐦', cost: 0 },
+  { id: 'pet_bee', type: 'pet', name: '勤劳蜂', icon: '🐝', cost: 150 },
+  { id: 'pet_butterfly', type: 'pet', name: '花蝴蝶', icon: '🦋', cost: 300 },
+  { id: 'pet_dragon', type: 'pet', name: '喷火龙', icon: '🐉', cost: 600 },
+  { id: 'pet_ufo', type: 'pet', name: '外星船', icon: '🛸', cost: 1000 },
+
+  // Buildings (Fixed structures)
+  { id: 'build_tent', type: 'building', name: '小帐篷', icon: '⛺', cost: 0 },
+  { id: 'build_house', type: 'building', name: '小木屋', icon: '🏠', cost: 200 },
+  { id: 'build_castle', type: 'building', name: '大城堡', icon: '🏰', cost: 500 },
+  { id: 'build_ferris', type: 'building', name: '摩天轮', icon: '🎡', cost: 800 },
+  { id: 'build_rocket', type: 'building', name: '火箭基', icon: '🚀', cost: 1200 },
+];
 
 export const ACHIEVEMENT_CARDS: AchievementCard[] = [
   {
@@ -143,11 +190,3 @@ export function generateLesson(
     points: 100 + day * 5
   };
 }
-
-export const AVATARS = [
-  { id: 'cat', icon: '🐱', cost: 0 },
-  { id: 'dog', icon: '🐶', cost: 100 },
-  { id: 'lion', icon: '🦁', cost: 300 },
-  { id: 'owl', icon: '🦉', cost: 500 },
-  { id: 'unicorn', icon: '🦄', cost: 1000 },
-];

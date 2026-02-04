@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats, AchievementCard } from './types';
-import { COURSES, AVATARS, generateLesson, DEFAULT_SETTINGS, ACHIEVEMENT_CARDS } from './constants';
+import { UserState, View, Lesson, Question, DailyStats, ParentSettings, QuestionCategory, LevelStats, AchievementCard, CustomReward, InventoryItem, DecorationItem } from './types';
+import { COURSES, AVATARS, DECORATIONS, generateLesson, DEFAULT_SETTINGS, ACHIEVEMENT_CARDS, STICKERS } from './constants';
 import { playClick, playCorrect, playIncorrect, playFanfare, playUnlock } from './sound';
 
 // --- Helper Functions ---
@@ -18,6 +18,73 @@ function getTodayStr() {
   return new Date().toISOString().split('T')[0];
 }
 
+// --- Animation Components ---
+
+// A component that bounces an element around the screen
+const BouncingItem: React.FC<{ icon: string; sizeRem: number; speed?: number; zIndex?: number }> = ({ icon, sizeRem, speed = 0.5, zIndex = 0 }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const state = useRef({
+    x: Math.random() * (window.innerWidth - 100),
+    y: Math.random() * (window.innerHeight - 100),
+    vx: (Math.random() > 0.5 ? 1 : -1) * speed,
+    vy: (Math.random() > 0.5 ? 1 : -1) * speed,
+  });
+
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const animate = () => {
+      const el = ref.current;
+      if (!el) return;
+
+      const s = state.current;
+      const rect = el.getBoundingClientRect();
+      const parentWidth = window.innerWidth;
+      const parentHeight = window.innerHeight;
+
+      // Update position
+      s.x += s.vx;
+      s.y += s.vy;
+
+      // Bounce horizontally
+      if (s.x <= 0) {
+        s.x = 0;
+        s.vx = Math.abs(s.vx);
+      } else if (s.x + rect.width >= parentWidth) {
+        s.x = parentWidth - rect.width;
+        s.vx = -Math.abs(s.vx);
+      }
+
+      // Bounce vertically
+      if (s.y <= 0) {
+        s.y = 0;
+        s.vy = Math.abs(s.vy);
+      } else if (s.y + rect.height >= parentHeight) {
+        s.y = parentHeight - rect.height;
+        s.vy = -Math.abs(s.vy);
+      }
+
+      // Apply transform directly for performance
+      el.style.transform = `translate3d(${s.x}px, ${s.y}px, 0)`;
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [speed]);
+
+  return (
+    <div 
+      ref={ref} 
+      className="fixed top-0 left-0 pointer-events-none drop-shadow-xl"
+      style={{ fontSize: `${sizeRem}rem`, zIndex }}
+    >
+      {icon}
+    </div>
+  );
+};
+
 // --- UI Components ---
 
 const Header: React.FC<{ user: UserState; setView: (v: View) => void }> = ({ user, setView }) => (
@@ -30,6 +97,14 @@ const Header: React.FC<{ user: UserState; setView: (v: View) => void }> = ({ use
       </div>
     </div>
     <div className="flex items-center gap-2 md:gap-3">
+      {/* New Store Button in Header */}
+      <button 
+        onClick={() => { playClick(); setView(View.STORE); }}
+        className="bg-amber-100 w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 border-amber-200 shadow-sm active:scale-95 transition-transform"
+      >
+        <span className="text-xl md:text-2xl">🎁</span>
+      </button>
+
       <div className="bg-amber-100 px-2 md:px-4 py-1 rounded-full flex items-center gap-1 md:gap-2 border-2 border-amber-200">
         <span className="text-sm md:text-xl">⭐</span>
         <span className="font-black text-amber-600 tabular-nums text-sm md:text-base">{user.stars}</span>
@@ -44,10 +119,13 @@ const Header: React.FC<{ user: UserState; setView: (v: View) => void }> = ({ use
 const LessonViewer: React.FC<{
   lesson: Lesson;
   streak: number;
-  onComplete: (points: number, questionIds: string[], stats: LevelStats) => void;
+  userSettings: ParentSettings;
+  // Passing finished count to help calculate achievements
+  finishedCount: number; 
+  onComplete: (points: number, questionIds: string[], stats: LevelStats, reward: InventoryItem | null) => void;
   onClose: () => void;
-}> = ({ lesson, streak, onComplete, onClose }) => {
-  const [step, setStep] = useState<'intro' | 'quiz' | 'finish'>('intro');
+}> = ({ lesson, streak, userSettings, finishedCount, onComplete, onClose }) => {
+  const [step, setStep] = useState<'intro' | 'quiz' | 'finish' | 'chest'>('intro');
   const [qIndex, setQIndex] = useState(0);
   const [feedback, setFeedback] = useState<{msg: string, ok: boolean} | null>(null);
   
@@ -58,6 +136,10 @@ const LessonViewer: React.FC<{
   });
   const [currentCombo, setCurrentCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
+
+  // Chest / Reward State
+  const [chestOpened, setChestOpened] = useState(false);
+  const [wonReward, setWonReward] = useState<{type: string, name: string, icon: string} | null>(null);
 
   // Standard Multiple Choice State
   const [selected, setSelected] = useState<string | null>(null);
@@ -216,6 +298,74 @@ const LessonViewer: React.FC<{
        setBlankSlots(Array(numBlanks).fill(''));
        if (q.options) setBlankBank(shuffleArray([...q.options]));
     }
+  };
+
+  // Treasure Chest Logic
+  const handleOpenChest = () => {
+    setChestOpened(true);
+    playUnlock();
+
+    // 1. Roll for Custom Rewards
+    let reward: InventoryItem | null = null;
+    const roll = Math.random() * 100;
+
+    // Sort rewards by probability ascending so smaller probabilities check first if we iterate (simplistic approach)
+    // Or just pick one random custom reward to check against its probability
+    const shuffledCustom = shuffleArray(userSettings.customRewards || []);
+    
+    for (const r of shuffledCustom) {
+      if (Math.random() * 100 < r.probability) {
+        reward = {
+          id: `custom_${Date.now()}`,
+          type: 'custom_coupon',
+          name: r.name,
+          icon: '🎟️',
+          obtainedAt: Date.now(),
+          isRedeemed: false
+        };
+        break;
+      }
+    }
+
+    // 2. If no custom reward, give a game reward (Sticker or Extra Stars)
+    if (!reward) {
+      const gameRoll = Math.random();
+      if (gameRoll < 0.7) {
+         // 70% chance for Sticker
+         const randomSticker = STICKERS[Math.floor(Math.random() * STICKERS.length)];
+         reward = {
+           id: `sticker_${Date.now()}`,
+           type: 'sticker',
+           name: randomSticker.name,
+           icon: randomSticker.icon,
+           obtainedAt: Date.now()
+         };
+      } else {
+         // 30% chance for Bonus Stars (Virtual Item)
+         const randomSticker = STICKERS[Math.floor(Math.random() * STICKERS.length)];
+         reward = {
+           id: `sticker_${Date.now()}`,
+           type: 'sticker',
+           name: randomSticker.name,
+           icon: randomSticker.icon,
+           obtainedAt: Date.now()
+         };
+      }
+    }
+
+    setWonReward({ type: reward.type, name: reward.name, icon: reward.icon });
+
+    // Wait a bit then finish
+    setTimeout(() => {
+       const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
+       onComplete(lesson.points, lesson.questions.map(q => q.id), { 
+          day: lesson.day,
+          timeSpent, 
+          mistakesByCat, 
+          maxCombo, 
+          timestamp: Date.now() 
+       }, reward);
+    }, 2500); // Give time to read the reward
   };
 
   const renderFillInTheBlankArea = () => {
@@ -403,16 +553,33 @@ const LessonViewer: React.FC<{
             </div>
             <button onClick={() => {
               playClick();
-              const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-              onComplete(lesson.points, lesson.questions.map(q => q.id), { 
-                day: lesson.day,
-                timeSpent, 
-                mistakesByCat, 
-                maxCombo, 
-                timestamp: Date.now() 
-              });
-            }} className="w-full py-4 md:py-8 bg-green-500 text-white rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-4xl font-black shadow-[0_8px_0_0_#15803d] active:shadow-none active:translate-y-2">回到地图</button>
+              setStep('chest');
+            }} className="w-full py-4 md:py-8 bg-green-500 text-white rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-4xl font-black shadow-[0_8px_0_0_#15803d] active:shadow-none active:translate-y-2">去开宝箱！🎁</button>
           </div>
+        )}
+
+        {step === 'chest' && (
+           <div className="w-full max-w-xl text-center flex flex-col items-center justify-center h-full space-y-6 animate-pop relative">
+              <h2 className="text-3xl md:text-4xl font-black text-amber-600 mb-4">{chestOpened ? (wonReward ? '恭喜获得！' : '...') : '神秘宝箱'}</h2>
+              
+              {!chestOpened ? (
+                <div 
+                  onClick={handleOpenChest}
+                  className="cursor-pointer text-[10rem] md:text-[12rem] animate-bounce hover:scale-110 transition-transform active:scale-95"
+                >
+                  🎁
+                  <p className="text-lg text-gray-400 font-bold mt-2 animate-pulse">点击打开</p>
+                </div>
+              ) : (
+                <div className="animate-pop flex flex-col items-center">
+                   <div className="text-[8rem] md:text-[10rem] mb-4 drop-shadow-2xl">{wonReward?.icon}</div>
+                   <div className="text-2xl md:text-3xl font-black text-gray-800 bg-white border-4 border-amber-200 px-8 py-4 rounded-full shadow-lg">
+                      {wonReward?.name}
+                   </div>
+                   <p className="mt-8 text-gray-500 font-bold">正在放入背包...</p>
+                </div>
+              )}
+           </div>
         )}
       </div>
     </div>
@@ -426,6 +593,10 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
   const [pin, setPin] = useState('');
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [tempSettings, setTempSettings] = useState<ParentSettings>(user.parentSettings || DEFAULT_SETTINGS);
+  
+  // Custom Reward Form
+  const [newRewardName, setNewRewardName] = useState('');
+  const [newRewardProb, setNewRewardProb] = useState(10);
 
   const handleSaveName = () => {
     if (nameVal.trim()) {
@@ -453,22 +624,40 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
     setPin('');
   };
 
+  const addCustomReward = () => {
+    if(!newRewardName.trim()) return;
+    const newReward: CustomReward = {
+      id: `r_${Date.now()}`,
+      name: newRewardName,
+      probability: newRewardProb
+    };
+    setTempSettings(prev => ({
+      ...prev,
+      customRewards: [...(prev.customRewards || []), newReward]
+    }));
+    setNewRewardName('');
+  };
+
+  const removeCustomReward = (id: string) => {
+    setTempSettings(prev => ({
+      ...prev,
+      customRewards: prev.customRewards?.filter(r => r.id !== id) || []
+    }));
+  };
+
   // Stats Calculations
-  // Fix: Explicitly cast Object.values result to DailyStats[] to avoid unknown type inference issues
   const historyValues = Object.values(user.statsHistory || {}) as DailyStats[];
   const totalMistakes = historyValues.reduce((acc, day) => acc + day.mistakes, 0);
   const totalTime = historyValues.reduce((acc, day) => acc + day.timeSpentSeconds, 0);
   const totalHours = Math.floor(totalTime / 3600);
   const totalMins = Math.floor((totalTime % 3600) / 60);
 
-  // Mistake distribution (All Time)
   const mistakeDist: Record<string, number> = {};
   historyValues.forEach(day => {
     Object.entries(day.mistakesByCategory).forEach(([cat, count]) => {
       mistakeDist[cat] = (mistakeDist[cat] || 0) + count;
     });
   });
-  // Fix: Cast Object.values result to number[] for Math.max
   const maxMistakeVal = Math.max(...(Object.values(mistakeDist) as number[]), 1);
 
   // Last Level Stats
@@ -555,7 +744,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                 {renderBarChart(mistakeDist, maxMistakeVal, 'bg-red-50', 'bg-red-300')}
              </div>
 
-             {/* Last Level Stats (New Module) */}
+             {/* Last Level Stats */}
              <div className="col-span-2 mt-2">
                <h3 className="font-black text-gray-500 text-lg mb-2 pl-2 border-l-4 border-green-400">上一关表现 {lastLevel && <span className="text-sm font-normal text-gray-400">Day {lastLevel.day}</span>}</h3>
                {lastLevel ? (
@@ -587,7 +776,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
          </>
        ) : (
          /* Parent Settings Modal Content */
-         <div className="mt-10 md:mt-20 w-full max-w-xl animate-pop">
+         <div className="mt-10 md:mt-20 w-full max-w-xl animate-pop pb-20">
            <h2 className="text-3xl font-black text-gray-700 mb-6 text-center">家长设置 ⚙️</h2>
            {!settingsUnlocked ? (
              <div className="flex flex-col items-center gap-4 bg-gray-50 p-8 rounded-3xl border-2 border-gray-100">
@@ -605,7 +794,7 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                </div>
              </div>
            ) : (
-             <div className="bg-white border-2 border-gray-100 p-6 md:p-8 rounded-3xl shadow-sm flex flex-col gap-6">
+             <div className="bg-white border-2 border-gray-100 p-6 md:p-8 rounded-3xl shadow-sm flex flex-col gap-8">
                 <div>
                   <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">每日题量配置</h3>
                   <div className="space-y-4">
@@ -638,6 +827,57 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
                   </div>
                 </div>
 
+                {/* Custom Rewards Section */}
+                <div>
+                  <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">🎁 宝箱奖励设置</h3>
+                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 mb-4">
+                     <p className="text-xs text-amber-600 mb-2">孩子每次通关后会开宝箱。系统会先按概率判断是否给予下方设置的“家长奖励”。若未中奖，则随机给予贴纸或拼图。</p>
+                     
+                     <div className="space-y-2 mb-4">
+                        {tempSettings.customRewards?.map((r) => (
+                          <div key={r.id} className="flex items-center justify-between bg-white p-2 rounded-lg shadow-sm border">
+                             <span className="font-bold text-gray-700 flex-1">{r.name}</span>
+                             <span className="text-sm font-bold text-sky-500 mr-4">{r.probability}%概率</span>
+                             <button onClick={() => removeCustomReward(r.id)} className="text-red-400 hover:text-red-600 px-2 font-bold">×</button>
+                          </div>
+                        ))}
+                        {(!tempSettings.customRewards || tempSettings.customRewards.length === 0) && (
+                          <div className="text-gray-400 text-sm italic text-center py-2">暂无自定义奖励</div>
+                        )}
+                     </div>
+
+                     <div className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <label className="text-xs text-gray-500 block mb-1">奖品名称</label>
+                          <input 
+                             value={newRewardName} 
+                             onChange={e => setNewRewardName(e.target.value)}
+                             placeholder="如：奖励1元"
+                             className="w-full p-2 rounded-lg border text-sm"
+                          />
+                        </div>
+                        <div className="w-20">
+                          <label className="text-xs text-gray-500 block mb-1">中奖率%</label>
+                          <input 
+                             type="number"
+                             min="1"
+                             max="100"
+                             value={newRewardProb} 
+                             onChange={e => setNewRewardProb(Number(e.target.value))}
+                             className="w-full p-2 rounded-lg border text-sm text-center"
+                          />
+                        </div>
+                        <button 
+                          onClick={addCustomReward}
+                          disabled={!newRewardName.trim()}
+                          className="bg-sky-500 text-white p-2 rounded-lg font-bold text-sm h-[38px] disabled:bg-gray-300"
+                        >
+                          添加
+                        </button>
+                     </div>
+                  </div>
+                </div>
+
                 <div className="flex gap-4 pt-4">
                    <button onClick={() => { playClick(); setShowParentSettings(false); }} className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold">取消</button>
                    <button onClick={handleSaveSettings} className="flex-1 py-3 bg-green-500 text-white rounded-xl font-bold shadow-md active:translate-y-1">保存设置</button>
@@ -651,10 +891,13 @@ const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) => void; 
 };
 
 const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'avatar' | 'cards'>('cards');
+  const [activeTab, setActiveTab] = useState<'avatar' | 'cards' | 'bag' | 'deco'>('bag');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const selectedCard = ACHIEVEMENT_CARDS.find(c => c.id === selectedCardId);
+
+  const stickers = user.inventory?.filter(i => i.type === 'sticker') || [];
+  const coupons = user.inventory?.filter(i => i.type === 'custom_coupon') || [];
 
   return (
     <div className="fixed inset-0 z-[100] bg-sky-50 flex flex-col items-center overflow-hidden font-standard">
@@ -666,28 +909,232 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
        </div>
 
        {/* Tabs */}
-       <div className="flex gap-4 mb-4 md:mb-6 p-1 bg-white rounded-xl border-2 border-amber-100 shadow-sm">
+       <div className="flex gap-2 md:gap-4 mb-4 md:mb-6 p-1 bg-white rounded-xl border-2 border-amber-100 shadow-sm overflow-x-auto max-w-full">
           <button 
-            onClick={() => { playClick(); setActiveTab('cards'); }}
-            className={`px-4 py-2 rounded-lg font-bold transition-all ${activeTab === 'cards' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
+            onClick={() => { playClick(); setActiveTab('bag'); }}
+            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'bag' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
           >
-            荣誉卡片
+            我的背包 🎒
+          </button>
+          <button 
+            onClick={() => { playClick(); setActiveTab('deco'); }}
+            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'deco' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
+          >
+            装饰岛屿 🏰
           </button>
           <button 
             onClick={() => { playClick(); setActiveTab('avatar'); }}
-            className={`px-4 py-2 rounded-lg font-bold transition-all ${activeTab === 'avatar' ? 'bg-sky-100 text-sky-600' : 'text-gray-400'}`}
+            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'avatar' ? 'bg-sky-100 text-sky-600' : 'text-gray-400'}`}
           >
-            魔法皮肤
+            魔法皮肤 👕
+          </button>
+          <button 
+            onClick={() => { playClick(); setActiveTab('cards'); }}
+            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'cards' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
+          >
+            荣誉卡片 🏆
           </button>
        </div>
 
        {/* Content Area */}
        <div className="flex-1 w-full overflow-y-auto px-4 pb-20 flex flex-col items-center">
           <div className="w-full max-w-5xl">
+
+            {/* Inventory Bag Tab */}
+            {activeTab === 'bag' && (
+               <div className="space-y-8 animate-fade-in">
+                  
+                  {/* Coupons Section */}
+                  <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-sky-100">
+                     <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
+                        🎟️ 兑换券 <span className="text-sm font-normal text-gray-400">(找爸爸妈妈兑换)</span>
+                     </h3>
+                     {coupons.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">还未获得兑换券，去闯关开宝箱吧！</div>
+                     ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                           {coupons.map(c => (
+                             <div key={c.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl shadow-sm">
+                                <div className="text-3xl bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-sm">🎁</div>
+                                <div className="flex-1">
+                                   <div className="font-bold text-orange-800">{c.name}</div>
+                                   <div className="text-xs text-orange-500">{new Date(c.obtainedAt).toLocaleDateString()} 获得</div>
+                                </div>
+                                <button 
+                                  onClick={() => {
+                                     if(confirm('确定要兑换并消耗这张券吗？')) {
+                                       setUser({...user, inventory: user.inventory.filter(i => i.id !== c.id)});
+                                     }
+                                  }}
+                                  className="px-3 py-1 bg-white text-orange-600 text-xs font-bold rounded-full border border-orange-200 active:scale-95"
+                                >
+                                   兑换
+                                </button>
+                             </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Stickers Section */}
+                  <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-indigo-100">
+                     <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
+                        🦄 贴纸集 <span className="text-sm font-normal text-gray-400">({stickers.length}个)</span>
+                     </h3>
+                     {stickers.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">空空如也</div>
+                     ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                           {stickers.map(s => (
+                             <div key={s.id} className="aspect-square flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl border border-indigo-100 p-2">
+                                <div className="text-4xl md:text-5xl mb-1 animate-pop">{s.icon}</div>
+                                <div className="text-[10px] md:text-xs text-indigo-400 font-bold text-center truncate w-full">{s.name}</div>
+                             </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+
+               </div>
+            )}
+
+            {/* Island Decoration Shop Tab */}
+            {activeTab === 'deco' && (
+              <div className="animate-fade-in space-y-6">
+                 {/* Themes */}
+                 <div className="bg-white p-4 rounded-3xl border-4 border-sky-100">
+                   <h3 className="font-black text-lg mb-4 text-sky-800">🌈 岛屿主题</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {DECORATIONS.filter(d => d.type === 'theme').map(d => {
+                        const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
+                        const active = user.activeDecorations.theme === d.id;
+                        return (
+                          <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-sky-50 border-sky-500' : 'bg-gray-50 border-gray-100'}`}>
+                             <div className="text-4xl">{d.icon}</div>
+                             <span className="font-bold text-sm text-gray-700">{d.name}</span>
+                             <button
+                               onClick={() => {
+                                 if (active) {
+                                   // Keep at least one theme, maybe fallback to default if user tries to uncheck? 
+                                   // For themes, usually we swap. But if user insists on deselecting, we could reset to default 'theme_sky'.
+                                   if (d.id !== 'theme_sky') {
+                                      playClick();
+                                      setUser({...user, activeDecorations: {...user.activeDecorations, theme: 'theme_sky'}});
+                                   }
+                                   return;
+                                 }
+                                 if (owned) {
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, theme: d.id}});
+                                 } else if (user.stars >= d.cost) {
+                                   playUnlock();
+                                   setUser({
+                                     ...user, 
+                                     stars: user.stars - d.cost, 
+                                     unlockedItems: [...user.unlockedItems, d.id],
+                                     activeDecorations: {...user.activeDecorations, theme: d.id}
+                                   });
+                                 }
+                               }}
+                               className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                             >
+                               {active ? '使用中' : owned ? '使用' : `${d.cost} ⭐`}
+                             </button>
+                          </div>
+                        )
+                      })}
+                   </div>
+                 </div>
+
+                 {/* Buildings */}
+                 <div className="bg-white p-4 rounded-3xl border-4 border-amber-100">
+                   <h3 className="font-black text-lg mb-4 text-amber-800">🏠 岛屿建筑</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {DECORATIONS.filter(d => d.type === 'building').map(d => {
+                        const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
+                        const active = user.activeDecorations.building === d.id;
+                        return (
+                          <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-amber-50 border-amber-500' : 'bg-gray-50 border-gray-100'}`}>
+                             <div className="text-4xl">{d.icon}</div>
+                             <span className="font-bold text-sm text-gray-700">{d.name}</span>
+                             <button
+                               onClick={() => {
+                                 if (active) {
+                                   // Allow deselecting
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, building: ''}});
+                                   return;
+                                 }
+                                 if (owned) {
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, building: d.id}});
+                                 } else if (user.stars >= d.cost) {
+                                   playUnlock();
+                                   setUser({
+                                     ...user, 
+                                     stars: user.stars - d.cost, 
+                                     unlockedItems: [...user.unlockedItems, d.id],
+                                     activeDecorations: {...user.activeDecorations, building: d.id}
+                                   });
+                                 }
+                               }}
+                               className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                             >
+                               {active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}
+                             </button>
+                          </div>
+                        )
+                      })}
+                   </div>
+                 </div>
+
+                 {/* Pets */}
+                 <div className="bg-white p-4 rounded-3xl border-4 border-rose-100">
+                   <h3 className="font-black text-lg mb-4 text-rose-800">🐾 岛屿宠物</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {DECORATIONS.filter(d => d.type === 'pet').map(d => {
+                        const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
+                        const active = user.activeDecorations.pet === d.id;
+                        return (
+                          <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-rose-50 border-rose-500' : 'bg-gray-50 border-gray-100'}`}>
+                             <div className="text-4xl">{d.icon}</div>
+                             <span className="font-bold text-sm text-gray-700">{d.name}</span>
+                             <button
+                               onClick={() => {
+                                 if (active) {
+                                   // Allow deselecting
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, pet: ''}});
+                                   return;
+                                 }
+                                 if (owned) {
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, pet: d.id}});
+                                 } else if (user.stars >= d.cost) {
+                                   playUnlock();
+                                   setUser({
+                                     ...user, 
+                                     stars: user.stars - d.cost, 
+                                     unlockedItems: [...user.unlockedItems, d.id],
+                                     activeDecorations: {...user.activeDecorations, pet: d.id}
+                                   });
+                                 }
+                               }}
+                               className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                             >
+                               {active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}
+                             </button>
+                          </div>
+                        )
+                      })}
+                   </div>
+                 </div>
+              </div>
+            )}
             
             {/* Achievement Cards Tab */}
             {activeTab === 'cards' && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 animate-fade-in">
                 {ACHIEVEMENT_CARDS.map(card => {
                   const unlocked = user.unlockedAchievements?.includes(card.id);
                   return (
@@ -717,7 +1164,7 @@ const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; on
 
             {/* Avatars Tab */}
             {activeTab === 'avatar' && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 animate-fade-in">
                 {AVATARS.map(a => {
                   const owned = user.unlockedItems.includes(a.id);
                   return (
@@ -767,28 +1214,36 @@ const IslandMap: React.FC<{ user: UserState; onSelectDay: (d: number) => void; s
   const finished = user.courseProgress[user.activeCourseId] || [];
   const days = Array.from({ length: 20 }, (_, i) => i + 1);
 
+  // Decoration Logic
+  const activeTheme = DECORATIONS.find(d => d.id === user.activeDecorations.theme) || DECORATIONS[0];
+  const activePet = DECORATIONS.find(d => d.id === user.activeDecorations.pet);
+  const activeBuilding = DECORATIONS.find(d => d.id === user.activeDecorations.building);
+
   return (
-    <div className="pt-20 md:pt-28 pb-32 px-4 md:px-6 max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 md:gap-6">
-      {days.map(d => {
-        const isLocked = d > finished.length + 1;
-        const isDone = finished.includes(d);
-        // Use settings from user state
-        const l = generateLesson(d, [], user.gameSeed, user.parentSettings); 
-        return (
-          <div key={d} onClick={() => { if(!isLocked) { playClick(); onSelectDay(d); } }} className={`relative p-3 md:p-6 rounded-2xl md:rounded-[3rem] border-b-4 md:border-b-[12px] flex flex-col items-center gap-1 md:gap-2 cursor-pointer transition-all ${isLocked ? 'bg-gray-100 grayscale opacity-40 border-gray-300' : isDone ? 'bg-green-50 border-green-300 scale-95 opacity-80' : 'bg-white border-sky-100 active:scale-95 md:hover:scale-105 shadow-md md:shadow-xl island-float'}`}>
-            <div className="text-4xl md:text-6xl mb-1 md:mb-2">{l.icon}</div>
-            <div className="text-center w-full">
-               <span className="text-[10px] font-black text-sky-300 block">DAY {d}</span>
-               <span className="font-bold text-gray-700 truncate w-full block text-sm md:text-base">{l.title}</span>
+    <div className={`pt-20 md:pt-28 pb-32 px-4 md:px-6 w-full min-h-screen transition-colors duration-500 ${activeTheme.styleClass || 'bg-sky-50'} relative overflow-hidden`}>
+      {/* Decorative Building (Bouncing/Floating Randomly) */}
+      {activeBuilding && <BouncingItem icon={activeBuilding.icon} sizeRem={8} speed={0.3} zIndex={5} />}
+
+      {/* Decorative Pet (Bouncing/Floating Randomly) */}
+      {activePet && <BouncingItem icon={activePet.icon} sizeRem={5} speed={0.8} zIndex={20} />}
+
+      <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 md:gap-6 relative z-10">
+        {days.map(d => {
+          const isLocked = d > finished.length + 1;
+          const isDone = finished.includes(d);
+          const l = generateLesson(d, [], user.gameSeed, user.parentSettings); 
+          return (
+            <div key={d} onClick={() => { if(!isLocked) { playClick(); onSelectDay(d); } }} className={`relative p-3 md:p-6 rounded-2xl md:rounded-[3rem] border-b-4 md:border-b-[12px] flex flex-col items-center gap-1 md:gap-2 cursor-pointer transition-all ${isLocked ? 'bg-gray-100 grayscale opacity-40 border-gray-300' : isDone ? 'bg-green-50 border-green-300 scale-95 opacity-80' : 'bg-white border-sky-100 active:scale-95 md:hover:scale-105 shadow-md md:shadow-xl island-float'}`}>
+              <div className="text-4xl md:text-6xl mb-1 md:mb-2">{l.icon}</div>
+              <div className="text-center w-full">
+                <span className="text-[10px] font-black text-sky-300 block">DAY {d}</span>
+                <span className="font-bold text-gray-700 truncate w-full block text-sm md:text-base">{l.title}</span>
+              </div>
+              {isDone && <div className="absolute -top-2 -right-2 md:-top-3 md:-right-3 bg-green-500 text-white w-6 h-6 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 md:border-4 border-white shadow-lg animate-pop text-xs md:text-base">✓</div>}
+              {isLocked && <div className="absolute inset-0 flex items-center justify-center bg-gray-900/5 rounded-2xl md:rounded-[3rem] text-xl md:text-3xl">🔒</div>}
             </div>
-            {isDone && <div className="absolute -top-2 -right-2 md:-top-3 md:-right-3 bg-green-500 text-white w-6 h-6 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 md:border-4 border-white shadow-lg animate-pop text-xs md:text-base">✓</div>}
-            {isLocked && <div className="absolute inset-0 flex items-center justify-center bg-gray-900/5 rounded-2xl md:rounded-[3rem] text-xl md:text-3xl">🔒</div>}
-          </div>
-        );
-      })}
-      <div onClick={() => { playClick(); setView(View.STORE); }} className="p-3 md:p-6 rounded-2xl md:rounded-[3rem] bg-amber-50 border-b-4 md:border-b-[12px] border-amber-300 shadow-md md:shadow-xl flex flex-col items-center justify-center gap-1 md:gap-2 cursor-pointer active:scale-95 md:hover:scale-110 island-float">
-        <div className="text-4xl md:text-6xl">🎁</div>
-        <span className="font-bold text-amber-700 text-sm md:text-base">宝藏店</span>
+          );
+        })}
       </div>
     </div>
   );
@@ -808,7 +1263,9 @@ export default function App() {
         lastLoginDate: parsed.lastLoginDate || '',
         statsHistory: parsed.statsHistory || {},
         parentSettings: parsed.parentSettings || DEFAULT_SETTINGS,
-        unlockedAchievements: parsed.unlockedAchievements || []
+        unlockedAchievements: parsed.unlockedAchievements || [],
+        inventory: parsed.inventory || [],
+        activeDecorations: parsed.activeDecorations || { theme: 'theme_sky', pet: '', building: '' }
       };
     }
     return { 
@@ -818,13 +1275,15 @@ export default function App() {
       courseProgress: { 'main': [] }, 
       usedQuestionIds: [], 
       activeCourseId: 'main', 
-      unlockedItems: ['cat'],
+      unlockedItems: ['cat', 'theme_sky', 'pet_bird', 'build_tent'], // Unlock defaults
       unlockedAchievements: [],
+      inventory: [],
       gameSeed: Math.floor(Math.random() * 1000000),
       streak: 0,
       lastLoginDate: '',
       statsHistory: {},
-      parentSettings: DEFAULT_SETTINGS
+      parentSettings: DEFAULT_SETTINGS,
+      activeDecorations: { theme: 'theme_sky', pet: 'pet_bird', building: 'build_tent' }
     };
   });
 
@@ -865,8 +1324,10 @@ export default function App() {
         <LessonViewer 
           lesson={generateLesson(selectedDay, user.usedQuestionIds, user.gameSeed, user.parentSettings)} 
           streak={user.streak}
+          userSettings={user.parentSettings}
+          finishedCount={(user.courseProgress[user.activeCourseId] || []).length}
           // Fix: Explicitly type callback arguments to ensure correct arithmetic operations
-          onComplete={(p, qIds, lessonStats: LevelStats) => {
+          onComplete={(p, qIds, lessonStats: LevelStats, reward: InventoryItem | null) => {
             const today = getTodayStr();
             const currentStats: DailyStats = user.statsHistory[today] || {
               date: today,
@@ -895,11 +1356,11 @@ export default function App() {
             
             // Check for Achievement Unlocks
             const newUnlocks = [...user.unlockedAchievements];
-            
-            // 1. Streak Cards (Check current streak)
-            // Note: streak is updated on mount. If this is today's first lesson, streak is already correct for "today".
-            if (user.streak >= 3 && !newUnlocks.includes('streak_3')) newUnlocks.push('streak_3');
-            if (user.streak >= 10 && !newUnlocks.includes('streak_10')) newUnlocks.push('streak_10');
+            const completedCount = (user.courseProgress[user.activeCourseId] || []).length + 1; // +1 for the one just finished
+
+            // 1. Streak Cards (Now based on Total Completed Levels)
+            if (completedCount >= 3 && !newUnlocks.includes('streak_3')) newUnlocks.push('streak_3');
+            if (completedCount >= 10 && !newUnlocks.includes('streak_10')) newUnlocks.push('streak_10');
             
             // 2. Performance Cards
             const isNoMistakes = mistakesCount === 0;
@@ -908,6 +1369,9 @@ export default function App() {
             if (isNoMistakes && !newUnlocks.includes('perfect_score')) newUnlocks.push('perfect_score');
             if (isFast && !newUnlocks.includes('speed_runner')) newUnlocks.push('speed_runner');
             if (isNoMistakes && isFast && !newUnlocks.includes('perfect_storm')) newUnlocks.push('perfect_storm');
+
+            // Inventory update
+            const newInventory = reward ? [...user.inventory, reward] : user.inventory;
 
             setUser(prev => ({
               ...prev,
@@ -919,7 +1383,8 @@ export default function App() {
                 [today]: updatedStats
               },
               lastLevelStats: lessonStats,
-              unlockedAchievements: newUnlocks
+              unlockedAchievements: newUnlocks,
+              inventory: newInventory
             }));
             setView(View.MAP);
           }}
