@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v17';
+const CACHE_NAME = 'quest-island-v18';
 const ASSETS_TO_CACHE = [
   // Core
   './',
@@ -10,6 +10,11 @@ const ASSETS_TO_CACHE = [
   './constants.ts',
   './questions.ts',
   './sound.ts',
+  
+  // Assets (Synchronized with Manifest)
+  './icon/icon-192x192.png',
+  './icon/icon-512x512.png',
+  
   // External
   'https://cdn.tailwindcss.com',
   
