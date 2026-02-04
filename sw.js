@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v3';
+const CACHE_NAME = 'quest-island-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,7 +9,6 @@ const ASSETS_TO_CACHE = [
   './constants.ts',
   './questions.ts',
   './sound.ts',
-  './icon.jpg',
   'https://cdn.tailwindcss.com'
 ];
 
@@ -42,17 +41,14 @@ self.addEventListener('activate', (event) => {
 // Fetch event
 self.addEventListener('fetch', (event) => {
   // 1. 处理导航请求 (页面跳转或PWA启动)
-  // 这是解决 404 问题的关键：无论请求什么页面，如果是导航模式，都尝试返回 index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.match('./index.html').then((cachedResponse) => {
-        // 如果缓存里有 index.html，直接返回
         if (cachedResponse) {
           return cachedResponse;
         }
-        // 如果缓存没有，尝试网络请求
         return fetch(event.request).catch(() => {
-           // 如果网络也失败了（离线），再次尝试返回缓存的 index.html (作为兜底)
+           // 离线状态下，导航请求失败时，返回首页作为兜底
            return caches.match('./index.html');
         });
       })
@@ -60,13 +56,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. 处理其他资源请求 (图片, 脚本, 样式等)
+  // 2. 处理其他资源请求
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Stale-While-Revalidate 策略: 优先用缓存，同时后台更新
+      // 这里的策略是：优先用缓存，同时发起网络请求更新缓存 (Stale-while-revalidate)
       const fetchPromise = fetch(event.request).then((networkResponse) => {
+        // 只缓存有效的响应
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -75,7 +72,7 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch((err) => {
-        // 网络失败，不做处理，下面的 cachedResponse 会被返回
+        // 网络失败，不做处理
       });
 
       return cachedResponse || fetchPromise;

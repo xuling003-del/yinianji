@@ -2,8 +2,8 @@
 {
   "name": "奇幻学习岛 - 一年级互动课堂",
   "short_name": "奇幻岛",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#f0f9ff",
   "theme_color": "#f0f9ff",
@@ -11,28 +11,16 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon.jpg",
+      "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>",
       "sizes": "192x192",
-      "type": "image/jpeg",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "icon.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon.jpg",
+      "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/svg+xml",
       "purpose": "any"
-    },
-    {
-      "src": "icon.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "maskable"
     }
   ]
 }
