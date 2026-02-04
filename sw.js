@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v14';
+const CACHE_NAME = 'quest-island-v15';
 const ASSETS_TO_CACHE = [
   // Core
   './index.html',
@@ -29,8 +29,6 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // 使用 cache.addAll 如果任何一个文件失败都会导致 SW 安装失败
-      // 所以确保列表里的文件真实存在
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -88,7 +86,7 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch((err) => {
-        // 网络请求失败，什么都不做，如果前面 cachedResponse 存在则会返回它
+        // 网络请求失败，什么都不做
       });
 
       return cachedResponse || fetchPromise;
