@@ -1,7 +1,8 @@
 
-const CACHE_NAME = 'quest-island-v16';
+const CACHE_NAME = 'quest-island-v17';
 const ASSETS_TO_CACHE = [
   // Core
+  './',
   './index.html',
   './index.tsx',
   './App.tsx',
@@ -9,7 +10,7 @@ const ASSETS_TO_CACHE = [
   './constants.ts',
   './questions.ts',
   './sound.ts',
-  // Removed icon from strict precache to prevent SW install failure if file is missing
+  // External
   'https://cdn.tailwindcss.com',
   
   // Utils & Hooks
@@ -29,7 +30,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Attempt to cache core assets. If any fail, SW install fails.
+      // Attempt to cache core assets.
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -57,15 +58,15 @@ self.addEventListener('fetch', (event) => {
   // 1. Handle Navigation Requests (HTML)
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('./index.html').then((cachedResponse) => {
+      caches.match('./index.html', { ignoreSearch: true }).then((cachedResponse) => {
         // Return cached index.html if available
         if (cachedResponse) {
           return cachedResponse;
         }
         // Fallback to network
         return fetch(event.request).catch(() => {
-           // If network fails, try to match index.html again (robustness)
-           return caches.match('./index.html');
+           // If network fails (offline), return cached index.html
+           return caches.match('./index.html', { ignoreSearch: true });
         });
       })
     );
@@ -76,7 +77,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
+    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
         // Cache valid responses
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
