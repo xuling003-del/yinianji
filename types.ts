@@ -134,3 +134,13 @@ export enum View {
   PROFILE = 'PROFILE',
   COURSE_SELECT = 'COURSE_SELECT'
 }
+
+// PWA Install Prompt Event Interface
+export interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}

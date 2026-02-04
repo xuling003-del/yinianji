@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { View, LevelStats, InventoryItem, DailyStats, SessionState } from './types';
+import React, { useState, useEffect } from 'react';
+import { View, LevelStats, InventoryItem, DailyStats, SessionState, BeforeInstallPromptEvent } from './types';
 import { generateLesson } from './constants';
 import { getTodayStr } from './utils/helpers';
 import { useGameState } from './hooks/useGameState';
@@ -16,6 +16,35 @@ export default function App() {
   const [view, setView] = useState<View>(View.MAP);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const { user, setUser } = useGameState();
+  
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    // Show the install prompt
+    await deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    // We've used the prompt, and can't use it again, throw it away
+    setDeferredPrompt(null);
+  };
 
   // Determine if we should resume from a previous session
   const getResumeSession = (day: number) => {
@@ -27,7 +56,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen font-standard bg-sky-50">
-      <Header user={user} setView={setView} />
+      <Header 
+        user={user} 
+        setView={setView} 
+        installPrompt={deferredPrompt ? handleInstallClick : undefined}
+      />
       
       {view === View.MAP && <IslandMap user={user} onSelectDay={d => { setSelectedDay(d); setView(View.LESSON); }} setView={setView} />}
       

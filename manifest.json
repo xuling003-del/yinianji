@@ -11,6 +11,7 @@
   "theme_color": "#f0f9ff",
   "description": "一个为一年级学生设计的20天互动学习平台。包含数学、语文、英语知识点，融合游戏化激励机制，支持离线进度保存。",
   "orientation": "portrait",
+  "categories": ["education", "games", "family"],
   "icons": [
     {
       "src": "./icon/icon-192x192.png",
@@ -35,6 +36,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./icon/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "学习地图"
+    },
+    {
+      "src": "./icon/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "互动答题"
     }
   ]
 }
