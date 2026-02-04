@@ -2,7 +2,8 @@
 {
   "name": "奇幻学习岛 - 一年级互动课堂",
   "short_name": "奇幻岛",
-  "start_url": ".",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f0f9ff",
   "theme_color": "#f0f9ff",

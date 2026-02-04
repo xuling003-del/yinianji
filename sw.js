@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v2';
+const CACHE_NAME = 'quest-island-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -41,25 +41,31 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
-  // 关键修复：处理导航请求（如从主屏幕启动App）
-  // 无论请求什么页面路径，如果是导航模式，都优先返回缓存的 index.html
+  // 1. 处理导航请求 (页面跳转或PWA启动)
+  // 这是解决 404 问题的关键：无论请求什么页面，如果是导航模式，都尝试返回 index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.match('./index.html').then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
-      }).catch(() => {
-        return fetch(event.request);
+        // 如果缓存里有 index.html，直接返回
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        // 如果缓存没有，尝试网络请求
+        return fetch(event.request).catch(() => {
+           // 如果网络也失败了（离线），再次尝试返回缓存的 index.html (作为兜底)
+           return caches.match('./index.html');
+        });
       })
     );
     return;
   }
 
-  // Handle other resource requests (Images, Scripts, etc.)
+  // 2. 处理其他资源请求 (图片, 脚本, 样式等)
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Stale-While-Revalidate 策略
+      // Stale-While-Revalidate 策略: 优先用缓存，同时后台更新
       const fetchPromise = fetch(event.request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
@@ -69,7 +75,7 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch((err) => {
-        // Network failed, rely on cache
+        // 网络失败，不做处理，下面的 cachedResponse 会被返回
       });
 
       return cachedResponse || fetchPromise;
