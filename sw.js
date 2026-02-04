@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v10';
+const CACHE_NAME = 'quest-island-v12';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

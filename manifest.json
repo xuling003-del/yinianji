@@ -1,4 +1,3 @@
-
 {
   "name": "奇幻学习岛 - 一年级互动课堂",
   "short_name": "奇幻岛",
@@ -7,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f0f9ff",
   "theme_color": "#f0f9ff",
-  "description": "一个为一年级学生设计的20天互动学习平台。",
+  "description": "一个为一年级学生设计的20天互动学习平台。包含数学、语文、英语知识点，融合游戏化激励机制，支持离线进度保存。",
   "orientation": "portrait",
   "icons": [
     {
