@@ -215,7 +215,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
             )}
 
             {activeTab === 'cards' && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3 animate-fade-in p-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 animate-fade-in p-2">
                 {honorCards.map(card => {
                   const unlocked = unlockedCards.includes(card.id);
                   return (
@@ -317,15 +317,18 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
        {/* View Large Card Modal (Honor Cards) */}
        {viewingCard && (
          <div 
-            className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in cursor-pointer" 
+            className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in" 
             onClick={() => setViewingCard(null)}
          >
-            <div 
-                className="relative cursor-auto" 
-                onClick={e => e.stopPropagation()}
-            >
-               {/* Click the card itself to flip */}
-               <div onClick={() => setIsCardFlipped(!isCardFlipped)}>
+            <div className="relative w-full max-w-sm md:max-w-md bg-transparent flex flex-col items-center" onClick={e => e.stopPropagation()}>
+               {/* Close Button */}
+               <button onClick={() => setViewingCard(null)} className="absolute -top-12 right-0 text-white text-4xl opacity-70 hover:opacity-100">✕</button>
+               
+               {/* Wrapper with island-float animation */}
+               <div 
+                  className="w-full aspect-[3/5] island-float relative cursor-pointer" 
+                  onClick={() => setIsCardFlipped(!isCardFlipped)}
+               >
                  <HonorCard 
                     card={viewingCard} 
                     unlocked={true} 
@@ -333,6 +336,11 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                     variant="modal"
                  />
                </div>
+               
+               <div className="mt-8 text-white font-black text-xl tracking-widest uppercase opacity-80 text-center">
+                  {viewingCard.title}
+               </div>
+               <p className="text-white/40 text-xs mt-2 font-medium">点击卡片翻转查看详情</p>
             </div>
          </div>
        )}
