@@ -87,7 +87,7 @@ export const QUESTION_BANK: Question[] = [
 { id: 'm-a-34', category: 'application', type: 'multiple-choice', text: '买4本笔记本花20元，每本笔记本多少元？', options: ['5元', '4元', '6元'], answer: '5元', explanation: '归一问题，总价÷数量=单价，20÷4=5。' },
 { id: 'm-a-35', category: 'application', type: 'multiple-choice', text: '排队做操，每行站10人，站了6行，还多3人，做操的一共有多少人？', options: ['63人', '60人', '57人'], answer: '63人', explanation: '先算6行的人数10×6=60，再加多的3人，60+3=63。' },
   // --- 数学思维题 (category: logic) ---
-  { id: 'm-l-1', category: 'logic', type: 'multiple-choice', text: '找出与其他项不同的一组数：', options: ['2, 4, 6', '10, 12, 14', '5, 10, 15'], answer: '5, 10, 15', explanation: '前两组都是公差为2的偶数序列，第三组公差为5。' },
+  { id: 'm-l-1', category: 'logic', type: 'multiple-choice', text: '找出与其他项不同的一组数：', options: ['2, 4, 6', '10, 12, 14', '5, 10, 15'], answer: '5, 10, 15', explanation: '有两组都是公差为2的偶数序列，另一组公差为5。' },
   { id: 'm-l-2', category: 'logic', type: 'multiple-choice', text: '找规律：2, 5, 9, 14, ( ), 27', options: ['20', '19', '21'], answer: '20', explanation: '加3，加4，加5，接下来加6：14+6=20。' },
   { id: 'm-l-3', category: 'logic', type: 'multiple-choice', text: '灯亮着，拉7下开关，灯是亮的还是暗的？', options: ['暗的', '亮的', '坏了'], answer: '暗的', explanation: '单数下是相反状态。1下暗，2下亮...7下暗。' },
   { id: 'm-l-4', category: 'logic', type: 'multiple-choice', text: '口袋有红白球各4个，至少摸几个保证有一双同色的？', options: ['3个', '2个', '5个'], answer: '3个', explanation: '最坏情况前两个不同色，第三个一定能配对。' },
