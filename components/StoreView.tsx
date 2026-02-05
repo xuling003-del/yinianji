@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UserState, AchievementCard } from '../types';
 import { DECORATIONS, AVATARS } from '../constants';
 import { playClick, playUnlock } from '../sound';
@@ -19,6 +18,25 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
   // For Honor Card Zoom & Flip Logic
   const [viewingCard, setViewingCard] = useState<AchievementCard | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
+
+  // For Locked Honor Card Tooltip
+  const [lockedCardId, setLockedCardId] = useState<string | null>(null);
+  const lockedCardTimerRef = useRef<number>(0);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(lockedCardTimerRef.current);
+    };
+  }, []);
+
+  const handleLockedCardClick = (id: string) => {
+    clearTimeout(lockedCardTimerRef.current);
+    setLockedCardId(id);
+    lockedCardTimerRef.current = window.setTimeout(() => {
+      setLockedCardId(null);
+    }, 3000);
+  };
 
   // Safe filtering: checking if 'i' exists before accessing 'i.type'
   const stickers = user.inventory?.filter(i => i && i.type === 'sticker') || [];
@@ -218,6 +236,8 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 animate-fade-in p-2">
                 {honorCards.map(card => {
                   const unlocked = unlockedCards.includes(card.id);
+                  const isLockedSelected = lockedCardId === card.id;
+                  
                   return (
                     <div 
                       key={card.id}
@@ -226,9 +246,11 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                          if (unlocked) {
                            setViewingCard(card);
                            setIsCardFlipped(false);
+                         } else {
+                           handleLockedCardClick(card.id);
                          }
                       }}
-                      className={`aspect-square flex flex-col items-center justify-center rounded-xl border-2 p-2 cursor-pointer transition-transform hover:scale-105 ${
+                      className={`relative aspect-square flex flex-col items-center justify-center rounded-xl border-2 p-2 cursor-pointer transition-transform hover:scale-105 ${
                         unlocked 
                           ? card.colorClass
                           : 'bg-gray-100 border-gray-200 opacity-80'
@@ -249,6 +271,16 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                         <div className={`text-[10px] md:text-xs font-bold text-center truncate w-full ${unlocked ? '' : 'text-gray-400'}`}>
                           {card.title}
                         </div>
+
+                        {/* Lock Condition Tooltip */}
+                        {!unlocked && isLockedSelected && (
+                           <div className="absolute z-20 bottom-full mb-2 left-1/2 -translate-x-1/2 w-[140%] min-w-[100px] bg-black/80 backdrop-blur text-white text-[10px] p-2 rounded-lg text-center animate-bounce-short shadow-xl">
+                              <div className="font-bold mb-1 text-amber-300">🔒 解锁条件</div>
+                              <div className="leading-tight">{card.conditionText}</div>
+                              {/* Arrow */}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black/80"></div>
+                           </div>
+                        )}
                     </div>
                   );
                 })}
