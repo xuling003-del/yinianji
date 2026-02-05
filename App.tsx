@@ -141,24 +141,62 @@ export default function App() {
               }
             };
             
-            // Check for Achievement Unlocks
+            // --- Achievement Calculations ---
             const newUnlocks = [...user.unlockedAchievements];
             const completedCount = (user.courseProgress[user.activeCourseId] || []).length + 1; // +1 for the one just finished
+            const isNoMistakes = mistakesCount === 0;
+            const isFast = lessonStats.timeSpent < 60; // Less than 1 minute
 
-            // 1. Streak Cards (Now based on Total Completed Levels)
+            // Inventory update
+            const newInventory = reward ? [...user.inventory, reward] : user.inventory;
+
+            // 1. Streak Cards (Days)
             if (completedCount >= 3 && !newUnlocks.includes('streak_3')) newUnlocks.push('streak_3');
             if (completedCount >= 10 && !newUnlocks.includes('streak_10')) newUnlocks.push('streak_10');
             
             // 2. Performance Cards
-            const isNoMistakes = mistakesCount === 0;
-            const isFast = lessonStats.timeSpent < 60; // Less than 1 minute
-
             if (isNoMistakes && !newUnlocks.includes('perfect_score')) newUnlocks.push('perfect_score');
             if (isFast && !newUnlocks.includes('speed_runner')) newUnlocks.push('speed_runner');
             if (isNoMistakes && isFast && !newUnlocks.includes('perfect_storm')) newUnlocks.push('perfect_storm');
 
-            // Inventory update
-            const newInventory = reward ? [...user.inventory, reward] : user.inventory;
+            // 3. New Advanced Stats Calculation
+            const prevConsecutive = user.consecutivePerfectLevels || 0;
+            const newConsecutive = isNoMistakes ? prevConsecutive + 1 : 0;
+            
+            const prevTotalTime = user.totalTimeSpent || 0;
+            const newTotalTime = prevTotalTime + lessonStats.timeSpent;
+
+            const prevTotalCorrect = user.totalCorrectAnswers || 0;
+            const currentCorrect = qIds.length; // Assuming completing a lesson implies answering all Qs correctly
+            const newTotalCorrect = prevTotalCorrect + currentCorrect;
+
+            // 4. New Achievement Checks
+            
+            // Sharpshooter: 3 Consecutive Perfect Levels
+            if (newConsecutive >= 3 && !newUnlocks.includes('sharpshooter')) {
+              newUnlocks.push('sharpshooter');
+            }
+
+            // Knowledge Expert: 2 Hours (7200 seconds)
+            if (newTotalTime >= 7200 && !newUnlocks.includes('knowledge_expert')) {
+              newUnlocks.push('knowledge_expert');
+            }
+
+            // Logic Master: 100 Correct Questions
+            if (newTotalCorrect >= 100 && !newUnlocks.includes('logic_master')) {
+              newUnlocks.push('logic_master');
+            }
+
+            // Colorful Collector: 5 Different Collection Cards
+            // We check the *new* inventory state
+            const uniqueCardNames = new Set(
+              newInventory
+                .filter(i => i.type === 'card')
+                .map(i => i.name)
+            );
+            if (uniqueCardNames.size >= 5 && !newUnlocks.includes('collection_king')) {
+              newUnlocks.push('collection_king');
+            }
 
             setUser(prev => ({
               ...prev,
@@ -172,7 +210,11 @@ export default function App() {
               lastLevelStats: lessonStats,
               unlockedAchievements: newUnlocks,
               inventory: newInventory,
-              currentSession: undefined // Clear saved session on completion
+              currentSession: undefined, // Clear saved session on completion
+              // Save new tracked stats
+              consecutivePerfectLevels: newConsecutive,
+              totalTimeSpent: newTotalTime,
+              totalCorrectAnswers: newTotalCorrect
             }));
             setView(View.MAP);
           }}

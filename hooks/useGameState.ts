@@ -18,6 +18,10 @@ export function useGameState() {
         parentSettings: parsed.parentSettings || DEFAULT_SETTINGS,
         unlockedAchievements: parsed.unlockedAchievements || [],
         inventory: parsed.inventory || [],
+        // New stats backfill
+        consecutivePerfectLevels: parsed.consecutivePerfectLevels || 0,
+        totalTimeSpent: parsed.totalTimeSpent || 0,
+        totalCorrectAnswers: parsed.totalCorrectAnswers || 0,
         // Update: Default fallback for decorations is now empty for pet/building
         activeDecorations: parsed.activeDecorations || { theme: 'theme_sky', pet: '', building: '' },
         currentSession: parsed.currentSession
@@ -40,6 +44,10 @@ export function useGameState() {
       lastLoginDate: '',
       statsHistory: {},
       parentSettings: DEFAULT_SETTINGS,
+      // New stats init
+      consecutivePerfectLevels: 0,
+      totalTimeSpent: 0,
+      totalCorrectAnswers: 0,
       // Update: Initial state has no active pet or building
       activeDecorations: { theme: 'theme_sky', pet: '', building: '' },
       currentSession: undefined

@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v33-json-support';
+const CACHE_NAME = 'quest-island-v34-honor-update';
 
 // 核心文件：必须存在，否则 Service Worker 安装失败
 const CORE_ASSETS = [
@@ -25,6 +25,7 @@ const HONOR_ASSETS = [
 ];
 
 // 2. 收集卡片 (Collection Cards) - 编号命名
+// 新增的荣誉卡片目前复用了 card_6 到 card_9 的图片作为占位
 const COLLECTION_ASSETS = Array.from({ length: 10 }, (_, i) => `media/card_${i + 1}.png`);
 
 // 可选文件

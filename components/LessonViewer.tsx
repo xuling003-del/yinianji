@@ -390,11 +390,25 @@ export const LessonViewer: React.FC<{
       {/* Top Bar */}
       <div className="px-3 py-2 md:p-4 border-b flex justify-between items-center bg-sky-50 h-14 shrink-0">
         <button onClick={() => { playClick(); handleClose(); }} className="text-2xl md:text-4xl text-sky-400 hover:text-sky-600 w-8">✕</button>
-        <div className="flex-1 px-4 md:px-8">
-           <div className="h-3 md:h-4 bg-white rounded-full overflow-hidden border">
-              <div className="h-full bg-sky-400 transition-all duration-500" style={{ width: `${((qIndex + 1) / lesson.questions.length) * 100}%` }}></div>
+        
+        {/* Segmented Progress Bar */}
+        <div className="flex-1 px-4 md:px-8 flex items-center justify-center">
+           <div className="flex gap-1 md:gap-1.5 w-full max-w-lg h-3 md:h-4">
+             {lesson.questions.map((_, idx) => (
+               <div 
+                 key={idx} 
+                 className={`flex-1 rounded-full transition-all duration-300 border ${
+                   idx < qIndex 
+                     ? 'bg-sky-400 border-sky-500 shadow-sm' 
+                     : idx === qIndex && step === 'quiz' 
+                       ? 'bg-sky-100 border-sky-300 animate-pulse'
+                       : 'bg-gray-100 border-gray-200'
+                 }`}
+               />
+             ))}
            </div>
         </div>
+        
         <div className="font-black text-sky-600 text-sm md:text-base whitespace-nowrap">Day {lesson.day}</div>
       </div>
 

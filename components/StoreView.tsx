@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { UserState } from '../types';
+import { UserState, AchievementCard } from '../types';
 import { DECORATIONS, AVATARS } from '../constants';
 import { playClick, playUnlock } from '../sound';
 import { generateCardDataUri } from '../utils/helpers';
@@ -9,15 +9,16 @@ import { useCards } from '../hooks/useCards';
 import { ImageLoader } from './ImageLoader';
 
 export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'avatar' | 'cards' | 'bag' | 'deco'>('deco');
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'cards' | 'bag' | 'deco'>('deco');
   
   const { cards: honorCards, unlockedCards } = useCards(user, setUser);
   
   // For viewing Game Cards (Images) in bag
   const [viewingImage, setViewingImage] = useState<string | null>(null);
 
-  const selectedCard = honorCards.find(c => c.id === selectedCardId);
+  // For Honor Card Zoom & Flip Logic
+  const [viewingCard, setViewingCard] = useState<AchievementCard | null>(null);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   // Safe filtering: checking if 'i' exists before accessing 'i.type'
   const stickers = user.inventory?.filter(i => i && i.type === 'sticker') || [];
@@ -37,13 +38,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
             onClick={() => { playClick(); setActiveTab('deco'); }}
             className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'deco' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
           >
-            装饰岛屿 🏰
-          </button>
-          <button 
-            onClick={() => { playClick(); setActiveTab('avatar'); }}
-            className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'avatar' ? 'bg-sky-100 text-sky-600' : 'text-gray-400'}`}
-          >
-            魔法皮肤 👕
+            头像与装饰 🏰
           </button>
           <button 
             onClick={() => { playClick(); setActiveTab('cards'); }}
@@ -64,6 +59,37 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
 
             {activeTab === 'deco' && (
               <div className="animate-fade-in space-y-6">
+                 
+                 {/* Avatars Section (Merged) */}
+                 <div className="bg-white p-4 rounded-3xl border-4 border-purple-100">
+                   <h3 className="font-black text-lg mb-4 text-purple-800">🧙‍♂️ 魔法头像</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {AVATARS.map(a => {
+                      const owned = user.unlockedItems.includes(a.id);
+                      return (
+                        <div key={a.id} className="flex flex-col items-center gap-2 p-2">
+                          <div className="text-5xl md:text-6xl">{a.icon}</div>
+                          <button 
+                              disabled={owned && user.avatar === a.icon}
+                              onClick={() => {
+                                if (owned) {
+                                  playClick();
+                                  setUser({...user, avatar: a.icon});
+                                } else if (user.stars >= a.cost) {
+                                  playUnlock();
+                                  setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
+                                }
+                              }}
+                              className={`w-full py-1 rounded-full font-black text-xs md:text-sm transition-all ${user.avatar === a.icon ? 'bg-sky-100 text-sky-500' : owned ? 'bg-sky-500 text-white' : user.stars >= a.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                          >
+                            {user.avatar === a.icon ? '使用中' : owned ? '使用' : `${a.cost} ⭐`}
+                          </button>
+                        </div>
+                      );
+                    })}
+                   </div>
+                 </div>
+
                  <div className="bg-white p-4 rounded-3xl border-4 border-sky-100">
                    <h3 className="font-black text-lg mb-4 text-sky-800">🌈 岛屿主题</h3>
                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -187,37 +213,9 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                  </div>
               </div>
             )}
-            
-            {activeTab === 'avatar' && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 animate-fade-in">
-                {AVATARS.map(a => {
-                  const owned = user.unlockedItems.includes(a.id);
-                  return (
-                    <div key={a.id} className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] shadow-xl flex flex-col items-center gap-4 md:gap-6 border-4 border-white">
-                      <div className="text-6xl md:text-8xl">{a.icon}</div>
-                      <button 
-                          disabled={owned && user.avatar === a.icon}
-                          onClick={() => {
-                            if (owned) {
-                              playClick();
-                              setUser({...user, avatar: a.icon});
-                            } else if (user.stars >= a.cost) {
-                              playUnlock();
-                              setUser({...user, stars: user.stars - a.cost, unlockedItems: [...user.unlockedItems, a.id], avatar: a.icon});
-                            }
-                          }}
-                          className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-lg md:text-xl transition-all ${user.avatar === a.icon ? 'bg-sky-100 text-sky-500' : owned ? 'bg-sky-500 text-white' : user.stars >= a.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
-                      >
-                        {user.avatar === a.icon ? '使用中' : owned ? '更换' : `${a.cost} ⭐`}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
 
             {activeTab === 'cards' && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 animate-fade-in">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 md:gap-4 animate-fade-in">
                 {honorCards.map(card => {
                   const unlocked = unlockedCards.includes(card.id);
                   return (
@@ -225,9 +223,13 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                       key={card.id}
                       card={card}
                       unlocked={unlocked}
-                      onClick={(id) => {
-                         // Optional: Handle click if needed
+                      isFlipped={false} // List view always shows front
+                      onClick={() => {
                          playClick();
+                         if (unlocked) {
+                           setViewingCard(card);
+                           setIsCardFlipped(false);
+                         }
                       }}
                     />
                   );
@@ -311,7 +313,26 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
           </div>
        </div>
 
-       {/* View Large Card Modal */}
+       {/* View Large Card Modal (Honor Cards) */}
+       {viewingCard && (
+         <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in" onClick={() => setViewingCard(null)}>
+            <div className="relative w-full max-w-sm" onClick={e => e.stopPropagation()}>
+               {/* Click the card itself to flip */}
+               <div onClick={() => setIsCardFlipped(!isCardFlipped)}>
+                 <HonorCard 
+                    card={viewingCard} 
+                    unlocked={true} 
+                    isFlipped={isCardFlipped} 
+                 />
+               </div>
+               <div className="mt-8 text-white font-black text-center opacity-80 animate-pulse">
+                 {isCardFlipped ? "再点一下看正面" : "点击翻转卡片"}
+               </div>
+            </div>
+         </div>
+       )}
+
+       {/* View Large Image Modal (Game Collection Cards) */}
        {viewingImage && (
          <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in" onClick={() => setViewingImage(null)}>
             <div className="relative w-full max-w-md bg-transparent flex flex-col items-center" onClick={e => e.stopPropagation()}>

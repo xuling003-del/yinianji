@@ -115,6 +115,11 @@ export interface UserState {
   statsHistory: { [date: string]: DailyStats };
   lastLevelStats?: LevelStats; // Stores stats of the most recently finished level
 
+  // Advanced Stats for Achievements
+  consecutivePerfectLevels: number; // For Sharpshooter
+  totalTimeSpent: number; // Total seconds, for Knowledge Expert
+  totalCorrectAnswers: number; // Total questions finished, for Logic Master
+
   // New Settings Fields
   parentSettings: ParentSettings;
 
