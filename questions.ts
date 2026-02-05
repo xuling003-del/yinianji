@@ -207,7 +207,7 @@ export const QUESTION_BANK: Question[] = [
 { id: 'c-w-complex-62', category: 'word', type: 'fill-in-the-blank', text: '我选一（ ）书，读（ ）津津有味。', options: ['běn', 'bēn', '的', '得'], answer: 'běn得', explanation: '“本”是前鼻音běn，表量词；“的”修饰名词“书”；“得”用在动词“读”后，表阅读的状态。' },
 { id: 'c-w-complex-64', category: 'word', type: 'fill-in-the-blank', text: '（ ）筝，飞（ ）了高高的天空。', options: ['fēng', 'fēn', '的', '向'], answer: 'fēng向', explanation: '“风”是后鼻音fēng；“的”修饰名词“筝”；“向”表方向，“飞向天空”是固定搭配。' },
 { id: 'c-w-complex-65', category: 'word', type: 'fill-in-the-blank', text: '清晨（ ）阳光轻柔（ ）洒下，照（ ）大地暖洋洋。', options: ['的', '地', '得', '遍'], answer: '的地得', explanation: '“的”修饰名词“阳光”；“地”修饰动词“洒”；“得”用在动词后，引出动作的结果。' },
-{ id: 'c-w-complex-67', category: 'word', type: 'fill-in-the-blank', text: '小朋友快乐（ ）做游戏，玩（ ）开心，笑（ ）响亮。', options: ['地', '的', '得', '声'], answer: '地得得', explanation: '“地”修饰动词“做”；两个“得”分别用在“玩”、“笑”后，表动作的情绪和声音程度。' },
+{ id: 'c-w-complex-67', category: 'word', type: 'fill-in-the-blank', text: '小朋友快乐（ ）做游戏，玩（ ）开心，笑（ ）响亮。', options: ['地', '的', '得', '声'], answer: '地得声', explanation: '“地”修饰动词“做”；两个“得”分别用在“玩”、“笑”后，表动作的情绪和声音程度。' },
 { id: 'c-w-complex-68', category: 'word', type: 'fill-in-the-blank', text: '悦耳的（ ）音，传（ ）了教室的每个角落。', options: ['shēng', 'shēn', '的', '到'], answer: 'shēng到', explanation: '“声”是后鼻音shēng，表声音；“的”修饰名词“音”；“传到”是固定搭配，表传递的范围。' },
 { id: 'c-w-complex-70', category: 'word', type: 'fill-in-the-blank', text: '这个小（ ）孩，跑（ ）比风还快。', options: ['nán', 'náng', '的', '得'], answer: 'nán得', explanation: '“男”是前鼻音nán，表性别；“的”修饰名词“孩”；“得”用在动词“跑”后，表跑的速度程度。' },
 { id: 'c-w-complex-71', category: 'word', type: 'fill-in-the-blank', text: '爷爷仔细（ ）浇花，浇（ ）仔细，花长（ ）茂盛。', options: ['地', '的', '得', '很'], answer: '地得得', explanation: '“地”修饰动词“浇”；两个“得”分别表“浇”的态度和“长”的状态，均用在动词后。' },

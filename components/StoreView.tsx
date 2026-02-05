@@ -1,21 +1,28 @@
 
 import React, { useState } from 'react';
 import { UserState } from '../types';
-import { ACHIEVEMENT_CARDS, DECORATIONS, AVATARS } from '../constants';
+import { DECORATIONS, AVATARS } from '../constants';
 import { playClick, playUnlock } from '../sound';
+import { generateCardDataUri } from '../utils/helpers';
+import { HonorCard } from './HonorCard';
+import { useCards } from '../hooks/useCards';
+import { ImageLoader } from './ImageLoader';
 
 export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => void; onClose: () => void }> = ({ user, setUser, onClose }) => {
   const [activeTab, setActiveTab] = useState<'avatar' | 'cards' | 'bag' | 'deco'>('deco');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   
+  const { cards: honorCards, unlockedCards } = useCards(user, setUser);
+  
   // For viewing Game Cards (Images) in bag
   const [viewingImage, setViewingImage] = useState<string | null>(null);
 
-  const selectedCard = ACHIEVEMENT_CARDS.find(c => c.id === selectedCardId);
+  const selectedCard = honorCards.find(c => c.id === selectedCardId);
 
-  const stickers = user.inventory?.filter(i => i.type === 'sticker') || [];
-  const cards = user.inventory?.filter(i => i.type === 'card') || [];
-  const coupons = user.inventory?.filter(i => i.type === 'custom_coupon') || [];
+  // Safe filtering: checking if 'i' exists before accessing 'i.type'
+  const stickers = user.inventory?.filter(i => i && i.type === 'sticker') || [];
+  const inventoryCards = user.inventory?.filter(i => i && i.type === 'card') || [];
+  const coupons = user.inventory?.filter(i => i && i.type === 'custom_coupon') || [];
 
   return (
     <div className="fixed inset-0 z-[100] bg-sky-50 flex flex-col items-center overflow-hidden font-standard">
@@ -211,55 +218,18 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
 
             {activeTab === 'cards' && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 animate-fade-in">
-                {ACHIEVEMENT_CARDS.map(card => {
-                  const unlocked = user.unlockedAchievements?.includes(card.id);
+                {honorCards.map(card => {
+                  const unlocked = unlockedCards.includes(card.id);
                   return (
-                    <div 
-                      key={card.id} 
-                      onClick={() => {
-                        if (unlocked) {
-                          playClick();
-                          setSelectedCardId(card.id);
-                        }
+                    <HonorCard 
+                      key={card.id}
+                      card={card}
+                      unlocked={unlocked}
+                      onClick={(id) => {
+                         // Optional: Handle click if needed
+                         playClick();
                       }}
-                      className={`relative aspect-[3/5] rounded-2xl border-4 transition-all duration-300 flex flex-col items-center p-2 text-center group overflow-hidden ${unlocked ? 'bg-white border-white shadow-xl cursor-pointer hover:scale-105 rotate-0' : 'bg-gray-200 border-gray-300 opacity-80 cursor-not-allowed grayscale'}`}
-                    >
-                       {/* Card Image Area */}
-                       <div className="w-full aspect-square bg-gray-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden relative">
-                         {unlocked ? (
-                           <>
-                              <img 
-                                src={card.image} 
-                                alt={card.title}
-                                className="w-full h-full object-contain p-1"
-                                onError={(e) => {
-                                  // Fallback to showing emoji if image fails to load
-                                  e.currentTarget.style.display = 'none';
-                                  const fallback = e.currentTarget.nextElementSibling;
-                                  if (fallback) fallback.classList.remove('hidden');
-                                }} 
-                              />
-                              <div className="hidden text-6xl animate-bounce">{card.icon}</div>
-                           </>
-                         ) : (
-                           <div className="text-5xl opacity-30">🔒</div>
-                         )}
-                       </div>
-
-                       {/* Title */}
-                       <h3 className={`font-black text-sm md:text-base mb-1 leading-tight ${unlocked ? 'text-gray-800' : 'text-gray-500'}`}>{card.title}</h3>
-                       
-                       {/* Description / Condition */}
-                       <div className="flex-1 flex items-center justify-center w-full px-1">
-                          {unlocked ? (
-                             <p className="text-xs text-gray-500 font-bold leading-tight">{card.description}</p>
-                          ) : (
-                             <span className="text-[10px] text-white bg-gray-400 px-2 py-1 rounded-full">{card.conditionText}</span>
-                          )}
-                       </div>
-                       
-                       {unlocked && <span className="absolute bottom-1 right-1 text-[8px] text-sky-200 font-bold uppercase tracking-wider">HONOR</span>}
-                    </div>
+                    />
                   );
                 })}
               </div>
@@ -303,19 +273,24 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                      <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
                         🦄 收藏集 <span className="text-sm font-normal text-gray-400">(贴纸与珍稀卡片)</span>
                      </h3>
-                     {stickers.length === 0 && cards.length === 0 ? (
+                     {stickers.length === 0 && inventoryCards.length === 0 ? (
                         <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">空空如也，快去探险吧！</div>
                      ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
                            {/* Render Cards First */}
-                           {cards.map(c => (
+                           {inventoryCards.map(c => (
                              <div 
                                key={c.id} 
                                onClick={() => { playClick(); setViewingImage(c.icon); }}
                                className="aspect-square flex flex-col items-center justify-center bg-yellow-50 rounded-xl border-2 border-yellow-200 p-2 cursor-pointer hover:scale-105 transition-transform"
                              >
-                                <div className="w-full h-full relative overflow-hidden rounded-lg mb-1">
-                                   <img src={c.icon} alt={c.name} className="w-full h-full object-contain" />
+                                <div className="w-full h-full relative overflow-hidden rounded-lg mb-1 flex items-center justify-center">
+                                   <ImageLoader 
+                                     src={`${c.icon}?v=1`} 
+                                     alt={c.name} 
+                                     className="w-full h-full"
+                                     fallbackText={c.name.replace(/\D/g, '') || 'C'}
+                                   />
                                 </div>
                                 <div className="text-[10px] md:text-xs text-yellow-700 font-bold text-center truncate w-full">{c.name}</div>
                              </div>
@@ -341,38 +316,14 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
          <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in" onClick={() => setViewingImage(null)}>
             <div className="relative w-full max-w-md bg-transparent flex flex-col items-center" onClick={e => e.stopPropagation()}>
                <button onClick={() => setViewingImage(null)} className="absolute -top-12 right-0 text-white text-4xl opacity-70 hover:opacity-100">✕</button>
-               <div className="w-full bg-white p-4 rounded-[2rem] shadow-2xl island-float border-4 border-amber-300">
-                  <img src={viewingImage} alt="Card" className="w-full h-auto rounded-xl" />
+               <div className="w-full bg-white p-4 rounded-[2rem] shadow-2xl island-float border-4 border-amber-300 relative min-h-[200px] flex items-center justify-center">
+                  <ImageLoader 
+                    src={`${viewingImage}?v=1`}
+                    alt="Card" 
+                    className="w-full h-auto rounded-xl"
+                  />
                </div>
                <div className="mt-8 text-white font-black text-xl tracking-widest uppercase opacity-80">珍贵收藏</div>
-            </div>
-         </div>
-       )}
-
-       {selectedCard && (
-         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedCardId(null)}>
-            <div className={`w-full max-w-sm ${selectedCard.colorClass} border-4 bg-white p-6 rounded-[2rem] shadow-2xl transform transition-all scale-100 flex flex-col items-center text-center relative overflow-hidden`} onClick={e => e.stopPropagation()}>
-               <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-white/30 to-transparent"></div>
-               <button onClick={() => setSelectedCardId(null)} className="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 z-10">✕</button>
-               
-               <div className="w-48 h-48 mb-4 animate-pop">
-                 <img 
-                   src={selectedCard.image} 
-                   alt={selectedCard.title} 
-                   className="w-full h-full object-contain drop-shadow-md"
-                   onError={(e) => {
-                       e.currentTarget.style.display = 'none';
-                       e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                   }}
-                 />
-                 <div className="hidden text-[6rem] leading-none pt-4">{selectedCard.icon}</div>
-               </div>
-
-               <h2 className="text-3xl font-black mb-2 relative z-10">{selectedCard.title}</h2>
-               <div className="w-16 h-1 bg-current opacity-20 rounded-full mb-6"></div>
-               <p className="text-lg font-bold leading-relaxed opacity-90 relative z-10">{selectedCard.message}</p>
-               
-               <div className="mt-8 text-xs font-bold uppercase tracking-widest opacity-50">Honor Card Collection</div>
             </div>
          </div>
        )}

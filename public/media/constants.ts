@@ -1,5 +1,7 @@
 
+
 import { Course, Lesson, Question, ParentSettings, QuestionCategory, AchievementCard, DecorationItem } from './types';
+import { QUESTION_BANK } from './questions';
 
 export const COURSES: Course[] = [
   { id: 'main', title: '20天全能冒险', description: '涵盖数学计算、应用、思维与语文表达。', icon: '🚀' }
@@ -64,10 +66,35 @@ export const DECORATIONS: DecorationItem[] = [
 ];
 
 // ----------------------------------------------------------------------
-// 荣誉卡片 (Achievement Cards)
+// 荣誉卡片图片分配逻辑
 // ----------------------------------------------------------------------
 
-export const ACHIEVEMENT_CARDS: AchievementCard[] = [
+// 由于部分环境不支持 import.meta.glob，我们采用“约定命名”的方式。
+// 请确保 media 文件夹下有 card_1.png, card_2.png ... 等图片。
+const MAX_SUPPORTED_IMAGES = 50; 
+const imagePool = Array.from({ length: MAX_SUPPORTED_IMAGES }, (_, i) => `/media/card_${i + 1}.png`);
+
+// 1. 伪随机生成器：保证每次刷新页面时，卡片分配到的图片是固定的
+function seededRandom(seed: number) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+// 2. 打乱数组
+const shuffle = (arr: string[], seed: number) => {
+  const newArr = [...arr];
+  for (let i = newArr.length - 1; i > 0; i--) {
+    const j = Math.floor(seededRandom(seed + i) * (i + 1));
+    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+  }
+  return newArr;
+};
+
+// 3. 使用固定种子打乱图片池
+const shuffledImagePool = shuffle(imagePool, 8888); 
+
+// 4. 定义原始卡片数据
+const RAW_CARDS: Omit<AchievementCard, 'image'>[] = [
   {
     id: 'streak_3',
     title: '坚持之星',
@@ -75,8 +102,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     icon: '🌱',
     description: '坚持是成功的基石',
     message: '奖励给坚持与成长的你',
-    colorClass: 'bg-green-100 border-green-300 text-green-700',
-    image: 'media/honor/jianchi.png' // 坚持
+    colorClass: 'bg-green-100 border-green-300 text-green-700'
   },
   {
     id: 'streak_10',
@@ -85,8 +111,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     icon: '🏆',
     description: '你的毅力令人佩服',
     message: '你不仅聪明，还勤奋，没有什么事情是你办不到的！',
-    colorClass: 'bg-amber-100 border-amber-300 text-amber-700',
-    image: 'media/honor/shengli.png' // 胜利
+    colorClass: 'bg-amber-100 border-amber-300 text-amber-700'
   },
   {
     id: 'perfect_score',
@@ -95,8 +120,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     icon: '✨',
     description: '追求卓越，一丝不苟',
     message: '奖励给细心与智慧的你',
-    colorClass: 'bg-indigo-100 border-indigo-300 text-indigo-700',
-    image: 'media/honor/zhihui.png' // 智慧
+    colorClass: 'bg-indigo-100 border-indigo-300 text-indigo-700'
   },
   {
     id: 'speed_runner',
@@ -105,8 +129,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     icon: '⚡',
     description: '思维敏捷，快如闪电',
     message: '你像闪电一样迅捷，手握智慧的权杖',
-    colorClass: 'bg-sky-100 border-sky-300 text-sky-700',
-    image: 'media/honor/shandian.png' // 闪电
+    colorClass: 'bg-sky-100 border-sky-300 text-sky-700'
   },
   {
     id: 'perfect_storm',
@@ -115,26 +138,26 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     icon: '💎',
     description: '完美与速度的化身',
     message: '速度与准确的完美结合，你是当之无愧的超级探险家！',
-    colorClass: 'bg-rose-100 border-rose-300 text-rose-700',
-    image: 'media/honor/wanmei.png' // 完美
+    colorClass: 'bg-rose-100 border-rose-300 text-rose-700'
   }
 ];
 
-export const COLLECTION_CARD_COUNT = 10;
+// 5. 自动分配
+export const ACHIEVEMENT_CARDS: AchievementCard[] = RAW_CARDS.map((card, index) => ({
+  ...card,
+  // 循环使用打乱后的图片池
+  image: shuffledImagePool[index % shuffledImagePool.length]
+}));
 
-
-// 伪随机生成器：仅用于题目打乱
-function seededRandom(seed: number) {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-}
 
 /**
  * Generates a lesson for a specific day while ensuring no questions from excludeIds are used.
- * UPDATED: Now requires `questionBank` to be passed in.
+ * @param day The day number
+ * @param excludeIds List of question IDs that have already been used
+ * @param userSeed User specific seed to randomize the question order per user
+ * @param settings Parent settings for question counts and ordering
  */
 export function generateLesson(
-  questionBank: Question[],
   day: number, 
   excludeIds: string[] = [], 
   userSeed: number = 0,
@@ -153,19 +176,23 @@ export function generateLesson(
   };
 
   const getByCategory = (cat: string, count: number) => {
-    let available = questionBank.filter(q => q.category === cat && !excludeIds.includes(q.id));
+    // Filter out already used questions
+    let available = QUESTION_BANK.filter(q => q.category === cat && !excludeIds.includes(q.id));
     
-    // If we run out of questions in a category, reuse older ones but prioritize unused
+    // Fallback: If we run out of questions in a category, reuse older ones but prioritize unused
     if (available.length < count) {
       const remainingNeeded = count - available.length;
-      const reused = questionBank.filter(q => q.category === cat && excludeIds.includes(q.id));
-      // Concatenate available with reused items to fill the need
+      const reused = QUESTION_BANK.filter(q => q.category === cat && excludeIds.includes(q.id));
       available = [...available, ...shuffleQuestions(reused, seed).slice(0, remainingNeeded)];
     }
+
     return shuffleQuestions(available, seed).slice(0, count);
   };
 
+  // 根据设置获取题目
   let questions: Question[] = [];
+  
+  // 遍历配置中的数量
   (Object.keys(settings.questionCounts) as QuestionCategory[]).forEach(cat => {
     const count = settings.questionCounts[cat];
     if (count > 0) {
@@ -188,6 +215,7 @@ export function generateLesson(
   ];
   const story = stories[day % stories.length];
 
+  // Apply shuffling based on settings
   const finalQuestions = settings.shuffleQuestions ? shuffleQuestions(questions, seed + 999) : questions;
 
   return {

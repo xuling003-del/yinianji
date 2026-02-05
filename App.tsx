@@ -1,24 +1,44 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, LevelStats, InventoryItem, DailyStats, SessionState, BeforeInstallPromptEvent } from './types';
+import { View, LevelStats, InventoryItem, DailyStats, SessionState, BeforeInstallPromptEvent, Question } from './types';
 import { generateLesson } from './constants';
 import { getTodayStr } from './utils/helpers';
 import { useGameState } from './hooks/useGameState';
 
-// Components
+// Components - Ensure using relative paths ./
 import { Header } from './components/Header';
 import { IslandMap } from './components/IslandMap';
 import { LessonViewer } from './components/LessonViewer';
 import { StoreView } from './components/StoreView';
 import { ProfileView } from './components/ProfileView';
+import { CardTestView } from './components/CardTestView';
 
 export default function App() {
   const [view, setView] = useState<View>(View.MAP);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const { user, setUser } = useGameState();
   
+  // Question Bank State (Loaded from JSON)
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
+
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  // Load Questions
+  useEffect(() => {
+    fetch('/data/questions.json')
+      .then(res => res.json())
+      .then((data: Question[]) => {
+        setQuestions(data);
+        setIsLoadingQuestions(false);
+      })
+      .catch(err => {
+        console.error("Failed to load questions", err);
+        setIsLoadingQuestions(false);
+        // Fallback or alert could go here
+      });
+  }, []);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -54,6 +74,15 @@ export default function App() {
     return undefined;
   };
 
+  if (isLoadingQuestions) {
+    return (
+      <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center font-standard">
+        <div className="text-6xl animate-bounce mb-4">🏝️</div>
+        <div className="text-sky-600 font-bold text-xl">正在前往奇幻岛...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen font-standard bg-sky-50">
       <Header 
@@ -62,11 +91,18 @@ export default function App() {
         installPrompt={deferredPrompt ? handleInstallClick : undefined}
       />
       
-      {view === View.MAP && <IslandMap user={user} onSelectDay={d => { setSelectedDay(d); setView(View.LESSON); }} setView={setView} />}
+      {view === View.MAP && (
+        <IslandMap 
+          user={user} 
+          questionBank={questions} 
+          onSelectDay={d => { setSelectedDay(d); setView(View.LESSON); }} 
+          setView={setView} 
+        />
+      )}
       
       {view === View.LESSON && selectedDay && (
         <LessonViewer 
-          lesson={generateLesson(selectedDay, user.usedQuestionIds, user.gameSeed, user.parentSettings)} 
+          lesson={generateLesson(questions, selectedDay, user.usedQuestionIds, user.gameSeed, user.parentSettings)} 
           streak={user.streak}
           userSettings={user.parentSettings}
           finishedCount={(user.courseProgress[user.activeCourseId] || []).length}
@@ -154,6 +190,10 @@ export default function App() {
           setUser={setUser} 
           onClose={() => setView(View.MAP)} 
         />
+      )}
+
+      {view === View.TEST_CARDS && (
+        <CardTestView onClose={() => setView(View.MAP)} />
       )}
     </div>
   );

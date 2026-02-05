@@ -134,7 +134,8 @@ export enum View {
   LESSON = 'LESSON',
   STORE = 'STORE',
   PROFILE = 'PROFILE',
-  COURSE_SELECT = 'COURSE_SELECT'
+  COURSE_SELECT = 'COURSE_SELECT',
+  TEST_CARDS = 'TEST_CARDS'
 }
 
 // PWA Install Prompt Event Interface
