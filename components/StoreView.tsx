@@ -215,7 +215,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
             )}
 
             {activeTab === 'cards' && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 md:gap-4 animate-fade-in">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3 animate-fade-in p-2">
                 {honorCards.map(card => {
                   const unlocked = unlockedCards.includes(card.id);
                   return (
@@ -224,6 +224,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                       card={card}
                       unlocked={unlocked}
                       isFlipped={false} // List view always shows front
+                      variant="list"
                       onClick={() => {
                          playClick();
                          if (unlocked) {
@@ -315,18 +316,22 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
 
        {/* View Large Card Modal (Honor Cards) */}
        {viewingCard && (
-         <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in" onClick={() => setViewingCard(null)}>
-            <div className="relative w-full max-w-sm" onClick={e => e.stopPropagation()}>
+         <div 
+            className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in cursor-pointer" 
+            onClick={() => setViewingCard(null)}
+         >
+            <div 
+                className="relative cursor-auto" 
+                onClick={e => e.stopPropagation()}
+            >
                {/* Click the card itself to flip */}
                <div onClick={() => setIsCardFlipped(!isCardFlipped)}>
                  <HonorCard 
                     card={viewingCard} 
                     unlocked={true} 
-                    isFlipped={isCardFlipped} 
+                    isFlipped={isCardFlipped}
+                    variant="modal"
                  />
-               </div>
-               <div className="mt-8 text-white font-black text-center opacity-80 animate-pulse">
-                 {isCardFlipped ? "再点一下看正面" : "点击翻转卡片"}
                </div>
             </div>
          </div>
@@ -334,7 +339,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
 
        {/* View Large Image Modal (Game Collection Cards) */}
        {viewingImage && (
-         <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in" onClick={() => setViewingImage(null)}>
+         <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in" onClick={() => setViewingImage(null)}>
             <div className="relative w-full max-w-md bg-transparent flex flex-col items-center" onClick={e => e.stopPropagation()}>
                <button onClick={() => setViewingImage(null)} className="absolute -top-12 right-0 text-white text-4xl opacity-70 hover:opacity-100">✕</button>
                <div className="w-full bg-white p-4 rounded-[2rem] shadow-2xl island-float border-4 border-amber-300 relative min-h-[200px] flex items-center justify-center">
