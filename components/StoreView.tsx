@@ -215,16 +215,12 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
             )}
 
             {activeTab === 'cards' && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 animate-fade-in p-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 animate-fade-in p-2">
                 {honorCards.map(card => {
                   const unlocked = unlockedCards.includes(card.id);
                   return (
-                    <HonorCard 
+                    <div 
                       key={card.id}
-                      card={card}
-                      unlocked={unlocked}
-                      isFlipped={false} // List view always shows front
-                      variant="list"
                       onClick={() => {
                          playClick();
                          if (unlocked) {
@@ -232,7 +228,28 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                            setIsCardFlipped(false);
                          }
                       }}
-                    />
+                      className={`aspect-square flex flex-col items-center justify-center rounded-xl border-2 p-2 cursor-pointer transition-transform hover:scale-105 ${
+                        unlocked 
+                          ? card.colorClass
+                          : 'bg-gray-100 border-gray-200 opacity-80'
+                      }`}
+                    >
+                        <div className="w-full h-full relative overflow-hidden rounded-lg mb-1 flex items-center justify-center bg-white/50">
+                          {unlocked ? (
+                             <ImageLoader 
+                               src={`${card.image}?v=1`} 
+                               alt={card.title}
+                               className="w-full h-full object-contain"
+                               fallbackText={card.title.substring(0, 1)}
+                             />
+                          ) : (
+                             <div className="text-3xl md:text-4xl opacity-30">🔒</div>
+                          )}
+                        </div>
+                        <div className={`text-[10px] md:text-xs font-bold text-center truncate w-full ${unlocked ? '' : 'text-gray-400'}`}>
+                          {card.title}
+                        </div>
+                    </div>
                   );
                 })}
               </div>
