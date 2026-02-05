@@ -272,13 +272,11 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                           {card.title}
                         </div>
 
-                        {/* Lock Condition Tooltip */}
+                        {/* Lock Condition Overlay (Inside Card) */}
                         {!unlocked && isLockedSelected && (
-                           <div className="absolute z-20 bottom-full mb-2 left-1/2 -translate-x-1/2 w-[140%] min-w-[100px] bg-black/80 backdrop-blur text-white text-[10px] p-2 rounded-lg text-center animate-bounce-short shadow-xl">
-                              <div className="font-bold mb-1 text-amber-300">🔒 解锁条件</div>
-                              <div className="leading-tight">{card.conditionText}</div>
-                              {/* Arrow */}
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black/80"></div>
+                           <div className="absolute inset-0 z-20 bg-black/85 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center text-white p-2 text-center animate-fade-in shadow-inner">
+                              <div className="font-bold mb-2 text-amber-300 text-xs">🔒 解锁条件</div>
+                              <div className="text-[10px] leading-relaxed font-medium text-gray-100">{card.conditionText}</div>
                            </div>
                         )}
                     </div>
