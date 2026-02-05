@@ -1,38 +1,33 @@
 
-const CACHE_NAME = 'quest-island-v34-honor-update';
+const CACHE_NAME = 'quest-island-v36-offline-fix';
 
 // 核心文件：必须存在，否则 Service Worker 安装失败
+// 注意：移除了 esm.sh 的外部依赖，因为我们现在让 Vite 将 React 打包到本地文件中，这样离线更稳定。
 const CORE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/data/questions.json',
   'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap',
-  'https://esm.sh/react@^19.2.4',
-  'https://esm.sh/react-dom@^19.2.4',
-  'https://esm.sh/vite@^7.3.1',
-  'https://esm.sh/@vitejs/plugin-react@^5.1.3'
+  'https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap'
 ];
 
-// 1. 荣誉卡片 (Achievement Cards) - 固定名称
+// 1. 荣誉卡片 (Achievement Cards) - 修正为 /honor/ 目录下的绝对路径
 const HONOR_ASSETS = [
-  'media/honor/jianchi.png',  // 坚持之星
-  'media/honor/shengli.png',  // 胜利勋章
-  'media/honor/zhihui.png',   // 智慧光环
-  'media/honor/shandian.png', // 闪电侠
-  'media/honor/wanmei.png'    // 完美风暴
+  '/honor/jianchi.png',  // 坚持之星
+  '/honor/shengli.png',  // 胜利勋章
+  '/honor/zhihui.png',   // 智慧光环
+  '/honor/shandian.png', // 闪电侠
+  '/honor/wanmei.png'    // 完美风暴
 ];
 
-// 2. 收集卡片 (Collection Cards) - 编号命名
-// 新增的荣誉卡片目前复用了 card_6 到 card_9 的图片作为占位
-const COLLECTION_ASSETS = Array.from({ length: 10 }, (_, i) => `media/card_${i + 1}.png`);
+// 2. 收集卡片 (Collection Cards) - 修正为 /media/ 目录下的绝对路径
+const COLLECTION_ASSETS = Array.from({ length: 10 }, (_, i) => `/media/card_${i + 1}.png`);
 
 // 可选文件
 const OPTIONAL_ASSETS = [
-  'icon/icon-192x192.png',
-  'icon/icon-512x512.png',
-  'https://esm.sh/@google/genai@^1.38.0',
+  '/icon/icon-192x192.png',
+  '/icon/icon-512x512.png',
   ...HONOR_ASSETS,
   ...COLLECTION_ASSETS
 ];
@@ -83,6 +78,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // HTML 页面：网络优先，失败则使用缓存
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -99,14 +95,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 静态资源：缓存优先 (Cache-First)
+  // 这会捕获 JS, CSS, Images 以及通过 Vite 打包生成的 assets 目录下的文件
   if (event.request.destination === 'script' || 
       event.request.destination === 'style' || 
       event.request.destination === 'image' ||
       event.request.destination === 'font' ||
       url.pathname.includes('/assets/') ||
       url.pathname.includes('/media/') || 
+      url.pathname.includes('/honor/') || 
       url.pathname.includes('/data/') ||
-      url.hostname === 'esm.sh' || 
       url.hostname === 'cdn.tailwindcss.com' ||
       url.hostname.includes('googleapis.com') ||
       url.hostname.includes('gstatic.com')) {
