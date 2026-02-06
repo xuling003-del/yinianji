@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserState, ParentSettings, DailyStats, QuestionCategory, CustomReward } from '../types';
 import { DEFAULT_SETTINGS, AVATARS } from '../constants';
@@ -40,6 +39,22 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
     setShowParentSettings(false);
     setSettingsUnlocked(false);
     setPin('');
+  };
+
+  const handleResetIsland = () => {
+    if (window.confirm('⚠️ 确定要重置岛屿探险进度吗？\n\n这将清空所有关卡的完成状态，孩子需要从第1关重新开始。\n\n放心，以下内容【不会】丢失：\n✨ 星星数量\n🏆 荣誉卡片\n🎒 背包道具与奖励')) {
+      playClick();
+      setUser({
+        ...user,
+        courseProgress: {
+           ...user.courseProgress,
+           [user.activeCourseId]: []
+        }
+      });
+      alert('✅ 岛屿进度已重置，新的冒险开始啦！');
+      setShowParentSettings(false);
+      onClose();
+    }
   };
 
   // --- Export / Import Logic ---
@@ -393,6 +408,25 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
                         </label>
                      </div>
                      <p className="text-[10px] text-gray-400 text-center">注意：恢复将覆盖当前设备上的所有进度。</p>
+                  </div>
+                </div>
+
+                {/* Reset Island Section */}
+                <div>
+                  <h3 className="font-bold text-lg text-red-600 mb-4 border-b border-red-100 pb-2">🚨 危险区域</h3>
+                  <div className="bg-red-50 p-5 rounded-xl border border-red-100 flex flex-col gap-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                           <h4 className="font-bold text-gray-700">重置关卡进度</h4>
+                           <p className="text-xs text-gray-500 mt-1">仅重置地图关卡，星星和收藏品保留。</p>
+                        </div>
+                        <button 
+                           onClick={handleResetIsland}
+                           className="bg-white border-2 border-red-200 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-50 active:scale-95 shadow-sm text-sm"
+                        >
+                           重置岛屿
+                        </button>
+                      </div>
                   </div>
                 </div>
 
