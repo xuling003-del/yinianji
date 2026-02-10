@@ -15,13 +15,23 @@ export function useGameState() {
         streak: parsed.streak || 0,
         lastLoginDate: parsed.lastLoginDate || '',
         statsHistory: parsed.statsHistory || {},
-        parentSettings: parsed.parentSettings || DEFAULT_SETTINGS,
+        // Deep merge parent settings to ensure new categories appear
+        parentSettings: {
+          ...DEFAULT_SETTINGS,
+          ...parsed.parentSettings,
+          questionCounts: {
+            ...DEFAULT_SETTINGS.questionCounts,
+            ...(parsed.parentSettings?.questionCounts || {})
+          }
+        },
         unlockedAchievements: parsed.unlockedAchievements || [],
         inventory: parsed.inventory || [],
         // New stats backfill
         consecutivePerfectLevels: parsed.consecutivePerfectLevels || 0,
         totalTimeSpent: parsed.totalTimeSpent || 0,
         totalCorrectAnswers: parsed.totalCorrectAnswers || 0,
+        // Smart Learning
+        mistakeQueue: parsed.mistakeQueue || [],
         // Update: Default fallback for decorations is now empty for pet/building
         activeDecorations: parsed.activeDecorations || { theme: 'theme_sky', pet: '', building: '' },
         currentSession: parsed.currentSession
@@ -48,6 +58,8 @@ export function useGameState() {
       consecutivePerfectLevels: 0,
       totalTimeSpent: 0,
       totalCorrectAnswers: 0,
+      // Smart Learning
+      mistakeQueue: [],
       // Update: Initial state has no active pet or building
       activeDecorations: { theme: 'theme_sky', pet: '', building: '' },
       currentSession: undefined

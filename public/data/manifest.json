@@ -1,0 +1,13 @@
+{
+  "version": "1.1",
+  "modules": [
+    { "id": "math_basic", "name": "数学基础", "path": "/data/math/basic.json", "icon": "🧮" },
+    { "id": "math_application", "name": "数学应用", "path": "/data/math/application.json", "icon": "📊" },
+    { "id": "math_logic", "name": "数学思维", "path": "/data/math/logic.json", "icon": "🧠" },
+    { "id": "math_emoji", "name": "趣味符号", "path": "/data/math/emoji.json", "icon": "⭐" },
+    { "id": "chinese_sentence", "name": "语文连句", "path": "/data/chinese/sentence.json", "icon": "📖" },
+    { "id": "chinese_word", "name": "语文填空", "path": "/data/chinese/word.json", "icon": "✏️" },
+    { "id": "chinese_punctuation", "name": "标点符号", "path": "/data/chinese/punctuation.json", "icon": "❓" },
+    { "id": "chinese_antonym", "name": "近反义词", "path": "/data/chinese/antonym.json", "icon": "🔄" }
+  ]
+}

@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v36-offline-fix';
+const CACHE_NAME = 'quest-island-v37-split-data';
 
 // 核心文件：必须存在，否则 Service Worker 安装失败
 // 注意：移除了 esm.sh 的外部依赖，因为我们现在让 Vite 将 React 打包到本地文件中，这样离线更稳定。
@@ -7,7 +7,12 @@ const CORE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/data/questions.json',
+  '/data/manifest.json',
+  '/data/math/basic.json',
+  '/data/math/application.json',
+  '/data/math/logic.json',
+  '/data/chinese/sentence.json',
+  '/data/chinese/word.json',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap'
 ];

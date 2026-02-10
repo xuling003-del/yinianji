@@ -1,0 +1,12 @@
+[
+  { "id": "c-p-1", "category": "punctuation", "type": "multiple-choice", "difficulty": 1, "text": "小明在家里写作业（ ）", "options": ["。", "？", "！"], "answer": "。", "explanation": "这是在说一件事情，用句号。就像你说'我吃饭了'后面要加句号。" },
+  { "id": "c-p-2", "category": "punctuation", "type": "multiple-choice", "difficulty": 1, "text": "你叫什么名字（ ）", "options": ["。", "？", "！"], "answer": "？", "explanation": "这是在问问题，用问号。凡是问别人的话，都要用问号哦。" },
+  { "id": "c-p-3", "category": "punctuation", "type": "multiple-choice", "difficulty": 1, "text": "太好了（ ）我们赢了（ ）", "options": ["！。", "。！", "？！"], "answer": "！。", "explanation": "第一句很激动用感叹号，第二句说事情用句号。" },
+  { "id": "c-p-4", "category": "punctuation", "type": "multiple-choice", "difficulty": 2, "text": "今天天气真好啊（ ）", "options": ["。", "？", "！"], "answer": "！", "explanation": "带'啊'、'呀'这些语气词，表示很高兴或惊讶，用感叹号。" },
+  { "id": "c-p-5", "category": "punctuation", "type": "multiple-choice", "difficulty": 2, "text": "妈妈（ ）你在哪里（ ）", "options": ["，？", "。？", "？。"], "answer": "，？", "explanation": "叫人用逗号停顿一下，问在哪里用问号。就像'老师，这题怎么做？'" },
+  { "id": "c-p-6", "category": "punctuation", "type": "multiple-choice", "difficulty": 1, "text": "这是谁的书包（ ）", "options": ["。", "？", "！"], "answer": "？", "explanation": "不知道是谁的，在问别人，所以用问号。" },
+  { "id": "c-p-7", "category": "punctuation", "type": "multiple-choice", "difficulty": 2, "text": "小心（ ）前面有车（ ）", "options": ["！。", "。！", "！！"], "answer": "！。", "explanation": "提醒别人要大声，用感叹号。后面说原因用句号。" },
+  { "id": "c-p-8", "category": "punctuation", "type": "multiple-choice", "difficulty": 2, "text": "我有一个苹果（ ）一个梨（ ）还有一个橘子（ ）", "options": ["、、。", "，，。", "。。。"], "answer": "、、。", "explanation": "列举东西用顿号，最后一个用句号。就像数数：一、二、三。" },
+  { "id": "c-p-9", "category": "punctuation", "type": "multiple-choice", "difficulty": 2, "text": "你吃饭了吗（ ）", "options": ["。", "？", "！"], "answer": "？", "explanation": "带'吗'字的句子是在问别人，要用问号。" },
+  { "id": "c-p-10", "category": "punctuation", "type": "multiple-choice", "difficulty": 3, "text": "春天来了（ ）花儿开了（ ）小鸟在唱歌（ ）", "options": ["，，。", "。。。", "！！！"], "answer": "，，。", "explanation": "几件事连着说，中间用逗号，最后用句号。就像讲故事要一句一句说。" }
+]

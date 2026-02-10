@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserState, ParentSettings, DailyStats, QuestionCategory, CustomReward } from '../types';
 import { DEFAULT_SETTINGS, AVATARS } from '../constants';
@@ -152,18 +153,24 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
   const lastLevelMistakes = lastLevel ? (Object.values(lastLevel.mistakesByCat) as number[]).reduce((a: number, b: number) => a + b, 0) : 0;
   const maxMistakeLevelVal = lastLevel ? Math.max(...(Object.values(lastLevel.mistakesByCat) as number[]), 1) : 1;
 
+  // Updated Labels for all categories
+  const catLabels: Record<string, string> = { 
+    basic:'计算', application:'应用', logic:'思维', emoji:'符号', 
+    sentence:'连句', word:'填空', punctuation:'标点', antonym:'反义', synonym:'近义' 
+  };
+
   const renderBarChart = (data: Record<string, number>, maxVal: number, colorClass: string, barColorClass: string) => {
     return (
-      <div className="w-full flex gap-2 h-24 items-end justify-around pb-2">
-          {Object.entries({ basic:'计算', application:'应用', logic:'思维', sentence:'连句', word:'填空' }).map(([cat, label]) => {
+      <div className="w-full flex gap-1 md:gap-2 h-24 items-end justify-around pb-2 overflow-x-auto">
+          {Object.entries(catLabels).map(([cat, label]) => {
             const val = data[cat] || 0;
             const heightPct = (val / maxVal) * 100;
             return (
-              <div key={cat} className="h-full flex flex-col justify-end items-center gap-1 flex-1 group">
-                <div className={`w-full ${barColorClass} rounded-t-lg transition-all duration-500 relative flex items-end justify-center`} style={{ height: `${heightPct}%`, minHeight: val > 0 ? '6px' : '2px' }}>
-                  {val > 0 && <span className="text-[10px] text-gray-500 absolute -top-4 font-bold opacity-0 group-hover:opacity-100">{val}</span>}
+              <div key={cat} className="h-full flex flex-col justify-end items-center gap-1 flex-1 group min-w-[30px]">
+                <div className={`w-full ${barColorClass} rounded-t-md md:rounded-t-lg transition-all duration-500 relative flex items-end justify-center`} style={{ height: `${heightPct}%`, minHeight: val > 0 ? '6px' : '2px' }}>
+                  {val > 0 && <span className="text-[8px] md:text-[10px] text-gray-500 absolute -top-4 font-bold opacity-0 group-hover:opacity-100">{val}</span>}
                 </div>
-                <span className="text-[10px] text-gray-500 font-bold">{label}</span>
+                <span className="text-[8px] md:text-[10px] text-gray-500 font-bold truncate w-full text-center">{label}</span>
               </div>
             )
           })}
@@ -306,14 +313,17 @@ export const ProfileView: React.FC<{ user: UserState; setUser: (u: UserState) =>
                   <h3 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2">每日题量配置</h3>
                   <div className="space-y-4">
                     {(Object.keys(tempSettings.questionCounts) as QuestionCategory[]).map(cat => {
-                      const labelMap: any = { basic:'数学计算', application:'数学应用', logic:'数学思维', sentence:'语文连句', word:'填空' };
+                      const labelMap: Record<string, string> = { 
+                        basic:'数学计算', application:'数学应用', logic:'数学思维', emoji:'趣味符号',
+                        sentence:'语文连句', word:'语文填空', punctuation:'标点符号', antonym:'反义词', synonym:'近义词' 
+                      };
                       return (
-                        <div key={cat} className="flex items-center justify-between">
-                          <span className="font-medium text-gray-600">{labelMap[cat]}</span>
+                        <div key={cat} className="flex items-center justify-between border-b border-gray-50 last:border-0 py-2">
+                          <span className="font-medium text-gray-600">{labelMap[cat] || cat}</span>
                           <div className="flex items-center gap-3">
                             <button onClick={() => { playClick(); setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.max(0, prev.questionCounts[cat] - 1)}})) }} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">-</button>
                             <span className="w-6 text-center font-bold text-lg">{tempSettings.questionCounts[cat]}</span>
-                            <button onClick={() => { playClick(); setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.min(10, prev.questionCounts[cat] + 1)}})) }} className="w-8 h-8 rounded-full bg-sky-100 hover:bg-sky-200 font-bold text-sky-600">+</button>
+                            <button onClick={() => { playClick(); setTempSettings(prev => ({...prev, questionCounts: {...prev.questionCounts, [cat]: Math.min(20, prev.questionCounts[cat] + 1)}})) }} className="w-8 h-8 rounded-full bg-sky-100 hover:bg-sky-200 font-bold text-sky-600">+</button>
                           </div>
                         </div>
                       )

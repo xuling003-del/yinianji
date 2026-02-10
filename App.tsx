@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, LevelStats, InventoryItem, DailyStats, SessionState, BeforeInstallPromptEvent, Question } from './types';
+import { View, LevelStats, InventoryItem, DailyStats, SessionState, BeforeInstallPromptEvent, Question, QuestionCategory } from './types';
 import { generateLesson } from './constants';
 import { getTodayStr } from './utils/helpers';
 import { useGameState } from './hooks/useGameState';
@@ -11,7 +11,6 @@ import { IslandMap } from './components/IslandMap';
 import { LessonViewer } from './components/LessonViewer';
 import { StoreView } from './components/StoreView';
 import { ProfileView } from './components/ProfileView';
-import { CardTestView } from './components/CardTestView';
 
 export default function App() {
   const [view, setView] = useState<View>(View.MAP);
@@ -25,19 +24,36 @@ export default function App() {
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
-  // Load Questions
+  // Load Questions from Manifest
   useEffect(() => {
-    fetch('/data/questions.json')
-      .then(res => res.json())
-      .then((data: Question[]) => {
-        setQuestions(data);
+    async function loadQuestions() {
+      try {
+        // 1. Fetch Manifest
+        const manifestRes = await fetch('/data/manifest.json');
+        if (!manifestRes.ok) throw new Error('Manifest not found');
+        const manifest = await manifestRes.json();
+        
+        // 2. Fetch all modules in parallel
+        const promises = manifest.modules.map((m: any) => 
+          fetch(m.path).then(res => res.json())
+        );
+        
+        const results = await Promise.all(promises);
+        
+        // 3. Flatten and combine
+        const allQuestions = results.flat();
+        console.log(`Loaded ${allQuestions.length} questions from ${results.length} modules.`);
+        
+        setQuestions(allQuestions);
         setIsLoadingQuestions(false);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error("Failed to load questions", err);
+        // Retry logic or offline fallback could happen here
         setIsLoadingQuestions(false);
-        // Fallback or alert could go here
-      });
+      }
+    }
+    
+    loadQuestions();
   }, []);
 
   useEffect(() => {
@@ -79,6 +95,7 @@ export default function App() {
       <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center font-standard">
         <div className="text-6xl animate-bounce mb-4">🏝️</div>
         <div className="text-sky-600 font-bold text-xl">正在前往奇幻岛...</div>
+        <div className="text-sky-400 text-sm mt-2">加载题库资源中</div>
       </div>
     );
   }
@@ -102,7 +119,8 @@ export default function App() {
       
       {view === View.LESSON && selectedDay && (
         <LessonViewer 
-          lesson={generateLesson(questions, selectedDay, user.usedQuestionIds, user.gameSeed, user.parentSettings)} 
+          // Pass mistakeQueue to generateLesson for smart review
+          lesson={generateLesson(questions, selectedDay, user.usedQuestionIds, user.gameSeed, user.parentSettings, user.mistakeQueue)} 
           streak={user.streak}
           userSettings={user.parentSettings}
           finishedCount={(user.courseProgress[user.activeCourseId] || []).length}
@@ -114,14 +132,20 @@ export default function App() {
             }));
           }}
           // Fix: Explicitly type callback arguments to ensure correct arithmetic operations
-          onComplete={(p, qIds, lessonStats: LevelStats, reward: InventoryItem | null) => {
+          onComplete={(p, qIds, lessonStats: LevelStats, reward: InventoryItem | null, wrongQuestionIds: string[]) => {
             const today = getTodayStr();
             const currentStats: DailyStats = user.statsHistory[today] || {
               date: today,
               timeSpentSeconds: 0,
               mistakes: 0,
-              mistakesByCategory: { basic: 0, application: 0, logic: 0, sentence: 0, word: 0 },
-              totalQuestionsByCategory: { basic: 0, application: 0, logic: 0, sentence: 0, word: 0 }
+              mistakesByCategory: { 
+                basic: 0, application: 0, logic: 0, emoji: 0, 
+                sentence: 0, word: 0, punctuation: 0, antonym: 0, synonym: 0 
+              },
+              totalQuestionsByCategory: { 
+                basic: 0, application: 0, logic: 0, emoji: 0,
+                sentence: 0, word: 0, punctuation: 0, antonym: 0, synonym: 0 
+              }
             };
 
             const mistakesCount = Object.values(lessonStats.mistakesByCat).reduce((a, b) => a + b, 0);
@@ -133,11 +157,15 @@ export default function App() {
               mistakes: currentStats.mistakes + mistakesCount,
               mistakesByCategory: {
                  ...currentStats.mistakesByCategory,
-                 basic: currentStats.mistakesByCategory.basic + lessonStats.mistakesByCat.basic,
-                 application: currentStats.mistakesByCategory.application + lessonStats.mistakesByCat.application,
-                 logic: currentStats.mistakesByCategory.logic + lessonStats.mistakesByCat.logic,
-                 sentence: currentStats.mistakesByCategory.sentence + lessonStats.mistakesByCat.sentence,
-                 word: currentStats.mistakesByCategory.word + lessonStats.mistakesByCat.word,
+                 basic: (currentStats.mistakesByCategory.basic || 0) + (lessonStats.mistakesByCat.basic || 0),
+                 application: (currentStats.mistakesByCategory.application || 0) + (lessonStats.mistakesByCat.application || 0),
+                 logic: (currentStats.mistakesByCategory.logic || 0) + (lessonStats.mistakesByCat.logic || 0),
+                 emoji: (currentStats.mistakesByCategory.emoji || 0) + (lessonStats.mistakesByCat.emoji || 0),
+                 sentence: (currentStats.mistakesByCategory.sentence || 0) + (lessonStats.mistakesByCat.sentence || 0),
+                 word: (currentStats.mistakesByCategory.word || 0) + (lessonStats.mistakesByCat.word || 0),
+                 punctuation: (currentStats.mistakesByCategory.punctuation || 0) + (lessonStats.mistakesByCat.punctuation || 0),
+                 antonym: (currentStats.mistakesByCategory.antonym || 0) + (lessonStats.mistakesByCat.antonym || 0),
+                 synonym: (currentStats.mistakesByCategory.synonym || 0) + (lessonStats.mistakesByCat.synonym || 0),
               }
             };
             
@@ -198,6 +226,19 @@ export default function App() {
               newUnlocks.push('collection_king');
             }
 
+            // --- Smart Learning: Update Mistake Queue ---
+            // 1. Remove questions that were in the queue but got answered correctly this time
+            // (If a question ID is in qIds but NOT in wrongQuestionIds, it was correct)
+            const answeredCorrectlyIds = qIds.filter(id => !wrongQuestionIds.includes(id));
+            const newMistakeQueue = user.mistakeQueue.filter(id => !answeredCorrectlyIds.includes(id));
+            
+            // 2. Add new wrong questions (avoid duplicates)
+            wrongQuestionIds.forEach(id => {
+              if (!newMistakeQueue.includes(id)) {
+                newMistakeQueue.push(id);
+              }
+            });
+
             setUser(prev => ({
               ...prev,
               stars: prev.stars + p,
@@ -214,7 +255,8 @@ export default function App() {
               // Save new tracked stats
               consecutivePerfectLevels: newConsecutive,
               totalTimeSpent: newTotalTime,
-              totalCorrectAnswers: newTotalCorrect
+              totalCorrectAnswers: newTotalCorrect,
+              mistakeQueue: newMistakeQueue
             }));
             setView(View.MAP);
           }}
@@ -232,10 +274,6 @@ export default function App() {
           setUser={setUser} 
           onClose={() => setView(View.MAP)} 
         />
-      )}
-
-      {view === View.TEST_CARDS && (
-        <CardTestView onClose={() => setView(View.MAP)} />
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 
 export type Subject = 'Math' | 'Chinese' | 'English' | 'General';
-export type QuestionCategory = 'basic' | 'application' | 'logic' | 'sentence' | 'word';
+export type QuestionCategory = 'basic' | 'application' | 'logic' | 'emoji' | 'sentence' | 'word' | 'punctuation' | 'antonym' | 'synonym';
 
 export interface Question {
   id: string;
@@ -10,6 +10,7 @@ export interface Question {
   options?: string[];
   answer: string;
   explanation: string;
+  difficulty?: number; // 1 (Easy) to 5 (Hard). Optional for backward compatibility but recommended.
 }
 
 export interface Lesson {
@@ -19,6 +20,8 @@ export interface Lesson {
   story: string;
   questions: Question[];
   points: number;
+  // Metadata for UI to show difficulty
+  difficultyLevel?: number; 
 }
 
 export interface Course {
@@ -95,6 +98,7 @@ export interface SessionState {
   currentCombo: number;
   maxCombo: number;
   accumulatedTime: number; // Time spent in previous sessions for this level
+  wrongQuestionIds: string[]; // Track which questions were wrong in this specific session
 }
 
 export interface UserState {
@@ -120,6 +124,9 @@ export interface UserState {
   totalTimeSpent: number; // Total seconds, for Knowledge Expert
   totalCorrectAnswers: number; // Total questions finished, for Logic Master
 
+  // Smart Learning State
+  mistakeQueue: string[]; // IDs of questions the user got wrong and needs to review
+
   // New Settings Fields
   parentSettings: ParentSettings;
 
@@ -139,8 +146,7 @@ export enum View {
   LESSON = 'LESSON',
   STORE = 'STORE',
   PROFILE = 'PROFILE',
-  COURSE_SELECT = 'COURSE_SELECT',
-  TEST_CARDS = 'TEST_CARDS'
+  COURSE_SELECT = 'COURSE_SELECT'
 }
 
 // PWA Install Prompt Event Interface

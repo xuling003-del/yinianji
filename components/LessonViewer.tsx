@@ -12,7 +12,7 @@ export const LessonViewer: React.FC<{
   userSettings: ParentSettings;
   finishedCount: number; 
   initialSession?: SessionState; // Prop for resume capability
-  onComplete: (points: number, questionIds: string[], stats: LevelStats, reward: InventoryItem | null) => void;
+  onComplete: (points: number, questionIds: string[], stats: LevelStats, reward: InventoryItem | null, wrongQuestionIds: string[]) => void;
   onSaveProgress: (state: SessionState) => void; // Callback to save progress
   onClose: () => void;
 }> = ({ lesson, streak, userSettings, finishedCount, initialSession, onComplete, onSaveProgress, onClose }) => {
@@ -28,8 +28,14 @@ export const LessonViewer: React.FC<{
   const accumulatedTimeRef = useRef<number>(initialSession ? initialSession.accumulatedTime : 0);
 
   const [mistakesByCat, setMistakesByCat] = useState<Record<QuestionCategory, number>>(() => 
-    initialSession ? initialSession.mistakesByCat : { basic: 0, application: 0, logic: 0, sentence: 0, word: 0 }
+    initialSession ? initialSession.mistakesByCat : { 
+      basic: 0, application: 0, logic: 0, emoji: 0,
+      sentence: 0, word: 0, punctuation: 0, antonym: 0, synonym: 0 
+    }
   );
+  // New: Track specific wrong question IDs
+  const [wrongQuestionIds, setWrongQuestionIds] = useState<string[]>(() => initialSession ? initialSession.wrongQuestionIds || [] : []);
+
   const [currentCombo, setCurrentCombo] = useState(() => initialSession ? initialSession.currentCombo : 0);
   const [maxCombo, setMaxCombo] = useState(() => initialSession ? initialSession.maxCombo : 0);
 
@@ -72,7 +78,8 @@ export const LessonViewer: React.FC<{
     mistakesByCat,
     currentCombo,
     maxCombo,
-    accumulatedTime: calculateTotalTime()
+    accumulatedTime: calculateTotalTime(),
+    wrongQuestionIds
   });
 
   const handleClose = () => {
@@ -112,8 +119,12 @@ export const LessonViewer: React.FC<{
     setFeedback({ msg: q.explanation, ok: false });
     setMistakesByCat(prev => ({
       ...prev,
-      [q.category]: prev[q.category] + 1
+      [q.category]: (prev[q.category] || 0) + 1
     }));
+    // Add to wrong list if not already there
+    if (!wrongQuestionIds.includes(q.id)) {
+      setWrongQuestionIds(prev => [...prev, q.id]);
+    }
     setCurrentCombo(0);
   };
 
@@ -207,7 +218,8 @@ export const LessonViewer: React.FC<{
         mistakesByCat,
         currentCombo,
         maxCombo,
-        accumulatedTime: calculateTotalTime()
+        accumulatedTime: calculateTotalTime(),
+        wrongQuestionIds
       });
     } else {
       playFanfare();
@@ -333,7 +345,7 @@ export const LessonViewer: React.FC<{
                 mistakesByCat, 
                 maxCombo, 
                 timestamp: Date.now() 
-            }, reward);
+            }, reward, wrongQuestionIds);
           }, 3500);
        }, 500); // Short explosion duration
     }, 1500); // Shaking duration
@@ -398,7 +410,7 @@ export const LessonViewer: React.FC<{
                <div 
                  key={idx} 
                  className={`flex-1 rounded-full transition-all duration-300 border ${
-                   idx < qIndex 
+                   (step === 'finish' || step === 'chest' || idx < qIndex)
                      ? 'bg-sky-400 border-sky-500 shadow-sm' 
                      : idx === qIndex && step === 'quiz' 
                        ? 'bg-sky-100 border-sky-300 animate-pulse'

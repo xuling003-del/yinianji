@@ -1,6 +1,5 @@
 
 import { Course, Lesson, Question, ParentSettings, QuestionCategory, AchievementCard, DecorationItem } from './types';
-import { QUESTION_BANK } from './questions';
 
 export const COURSES: Course[] = [
   { id: 'main', title: '20天全能冒险', description: '涵盖数学计算、应用、思维与语文表达。', icon: '🚀' }
@@ -11,8 +10,12 @@ export const DEFAULT_SETTINGS: ParentSettings = {
     'basic': 2,
     'application': 1,
     'logic': 1,
+    'emoji': 1,
     'sentence': 1,
-    'word': 1
+    'word': 1,
+    'punctuation': 1,
+    'antonym': 1,
+    'synonym': 1
   },
   shuffleQuestions: true,
   customRewards: [
@@ -171,19 +174,33 @@ function seededRandom(seed: number) {
 }
 
 /**
- * Generates a lesson for a specific day while ensuring no questions from excludeIds are used.
- * UPDATED: Now requires `questionBank` to be passed in.
+ * Generates a lesson for a specific day with Progressive Difficulty and Spaced Repetition.
  */
 export function generateLesson(
   questionBank: Question[],
   day: number, 
   excludeIds: string[] = [], 
   userSeed: number = 0,
-  settings: ParentSettings = DEFAULT_SETTINGS
+  settings: ParentSettings = DEFAULT_SETTINGS,
+  mistakeQueue: string[] = [] // New: Inject mistakes
 ): Lesson {
   // Combine day and userSeed to create a unique but consistent seed for this day/user combo
   const seed = (day * 123) + userSeed;
   
+  // Calculate Target Difficulty (Progressive Curve)
+  // Day 1-4: Lv1-2
+  // Day 5-10: Lv2-3
+  // Day 11-15: Lv3-4
+  // Day 16-20: Lv4-5
+  const targetDiff = Math.min(5, Math.ceil(day / 4) + (day > 10 ? 1 : 0));
+  
+  // Create a pool of "Review Questions" from the mistakeQueue
+  // We take up to 2 review questions per day to keep frustration low but learning high
+  const maxReviewCount = 2;
+  const reviewQuestions = questionBank.filter(q => mistakeQueue.includes(q.id));
+  const selectedReviewQs = reviewQuestions.slice(0, maxReviewCount); // Take the first few (oldest mistakes)
+  const reviewIds = selectedReviewQs.map(q => q.id);
+
   const shuffleQuestions = (arr: any[], customSeed: number) => {
     const newArr = [...arr];
     for (let i = newArr.length - 1; i > 0; i--) {
@@ -194,23 +211,57 @@ export function generateLesson(
   };
 
   const getByCategory = (cat: string, count: number) => {
-    let available = questionBank.filter(q => q.category === cat && !excludeIds.includes(q.id));
+    // 1. Try to find questions matching current difficulty range [Target-1, Target]
+    // 2. Fallback to any difficulty if not enough
+    // 3. Exclude reviewIds so we don't duplicate
+    const diffMin = Math.max(1, targetDiff - 1);
+    const diffMax = Math.min(5, targetDiff);
     
-    // If we run out of questions in a category, reuse older ones but prioritize unused
-    if (available.length < count) {
-      const remainingNeeded = count - available.length;
-      const reused = questionBank.filter(q => q.category === cat && excludeIds.includes(q.id));
-      // Concatenate available with reused items to fill the need
-      available = [...available, ...shuffleQuestions(reused, seed).slice(0, remainingNeeded)];
+    // Base pool: matches category, not in general exclude list, not already selected as review
+    const basePool = questionBank.filter(q => 
+      q.category === cat && 
+      !excludeIds.includes(q.id) &&
+      !reviewIds.includes(q.id)
+    );
+    
+    // Filter by difficulty
+    let candidates = basePool.filter(q => {
+      const d = q.difficulty || 2; // Default to 2 if undefined
+      return d >= diffMin && d <= diffMax;
+    });
+    
+    // If not enough, widen the search to all difficulties
+    if (candidates.length < count) {
+      candidates = basePool;
     }
-    return shuffleQuestions(available, seed).slice(0, count);
+
+    // If still not enough (ran out of questions), reuse older used questions (excluding current review set)
+    if (candidates.length < count) {
+       const reused = questionBank.filter(q => 
+         q.category === cat && 
+         excludeIds.includes(q.id) && 
+         !reviewIds.includes(q.id)
+       );
+       candidates = [...candidates, ...shuffleQuestions(reused, seed)];
+    }
+
+    return shuffleQuestions(candidates, seed).slice(0, count);
   };
 
-  let questions: Question[] = [];
+  let questions: Question[] = [...selectedReviewQs]; // Start with review questions
+  
   (Object.keys(settings.questionCounts) as QuestionCategory[]).forEach(cat => {
     const count = settings.questionCounts[cat];
     if (count > 0) {
-      questions = [...questions, ...getByCategory(cat, count)];
+      // Adjust count if we already have review questions of this category?
+      // For simplicity, we just append review questions on top, or we could subtract.
+      // Let's subtract to keep daily volume consistent.
+      const existingCount = questions.filter(q => q.category === cat).length;
+      const needed = Math.max(0, count - existingCount);
+      
+      if (needed > 0) {
+        questions = [...questions, ...getByCategory(cat, needed)];
+      }
     }
   });
 
@@ -229,14 +280,16 @@ export function generateLesson(
   ];
   const story = stories[day % stories.length];
 
+  // Shuffle the final mix so review questions aren't always first
   const finalQuestions = settings.shuffleQuestions ? shuffleQuestions(questions, seed + 999) : questions;
 
   return {
     day,
-    title: `第 ${day} 天：奇幻探索`,
+    title: `第 ${day} 天：奇幻探索 (难度 Lv${targetDiff})`,
     icon,
     story,
     questions: finalQuestions,
-    points: 100 + day * 5
+    points: 100 + day * 5,
+    difficultyLevel: targetDiff
   };
 }

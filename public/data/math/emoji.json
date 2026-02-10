@@ -1,0 +1,17 @@
+[
+  { "id": "m-e-1", "category": "emoji", "type": "multiple-choice", "difficulty": 2, "text": "⭐=3，🔵=2，那么 ⭐+🔵=？", "options": ["5", "6", "4"], "answer": "5", "explanation": "把符号换成数字：3+2。就像你有3颗星星糖和2颗圆形糖，一共几颗？" },
+  { "id": "m-e-2", "category": "emoji", "type": "multiple-choice", "difficulty": 2, "text": "🍎=4，🍌=3，那么 🍎+🍌=？", "options": ["7", "8", "6"], "answer": "7", "explanation": "苹果代表4，香蕉代表3，加起来就是4+3。" },
+  { "id": "m-e-3", "category": "emoji", "type": "multiple-choice", "difficulty": 2, "text": "⭐=5，🔵=2，那么 ⭐-🔵=？", "options": ["3", "7", "4"], "answer": "3", "explanation": "星星是5，圆形是2，用减法：5-2。" },
+  { "id": "m-e-4", "category": "emoji", "type": "multiple-choice", "difficulty": 3, "text": "🐱=6，🐶=4，那么 🐱+🐶-🐱=？", "options": ["4", "6", "10"], "answer": "4", "explanation": "小猫是6，小狗是4。6+4-6，加上又减去同一个数，剩下的就是另一个数。" },
+  { "id": "m-e-5", "category": "emoji", "type": "multiple-choice", "difficulty": 3, "text": "⭐=3，🔵=2，那么 ⭐+⭐+🔵=？", "options": ["8", "7", "9"], "answer": "8", "explanation": "两个星星加一个圆形：3+3+2。相同的符号代表相同的数。" },
+  { "id": "m-e-6", "category": "emoji", "type": "multiple-choice", "difficulty": 2, "text": "🌸=7，🌺=3，那么 🌸-🌺=？", "options": ["4", "10", "5"], "answer": "4", "explanation": "花朵代表7，小花代表3，做减法：7-3。" },
+  { "id": "m-e-7", "category": "emoji", "type": "multiple-choice", "difficulty": 3, "text": "🍎=5，🍌=2，那么 🍎+🍎-🍌=？", "options": ["8", "7", "12"], "answer": "8", "explanation": "两个苹果减一个香蕉：5+5-2。先加后减，一步一步算。" },
+  { "id": "m-e-8", "category": "emoji", "type": "multiple-choice", "difficulty": 4, "text": "⭐+⭐=6，🔵+🔵=4，那么 ⭐=？", "options": ["3", "2", "4"], "answer": "3", "explanation": "两个星星等于6，那一个星星就是6的一半。想想：几加几等于6？" },
+  { "id": "m-e-9", "category": "emoji", "type": "multiple-choice", "difficulty": 3, "text": "🐱=8，🐶=5，那么 🐱+🐶+🐱=？", "options": ["21", "18", "13"], "answer": "21", "explanation": "两只小猫加一只小狗：8+5+8。可以先算8+8，再加5。" },
+  { "id": "m-e-10", "category": "emoji", "type": "multiple-choice", "difficulty": 4, "text": "⭐+🔵=7，⭐-🔵=3，那么 ⭐=？", "options": ["5", "4", "6"], "answer": "5", "explanation": "两个式子一起看：加起来是7，相减是3。想想哪两个数有这个规律？试试5和2。" },
+  { "id": "m-e-11", "category": "emoji", "type": "multiple-choice", "difficulty": 2, "text": "🌞=10，☁️=6，那么 🌞-☁️=？", "options": ["4", "16", "5"], "answer": "4", "explanation": "太阳是10，云朵是6，做减法：10-6。" },
+  { "id": "m-e-12", "category": "emoji", "type": "multiple-choice", "difficulty": 3, "text": "🍎=6，🍌=4，🍊=2，那么 🍎+🍌-🍊=？", "options": ["8", "12", "10"], "answer": "8", "explanation": "三种水果一起算：6+4-2。先加后减，按顺序来。" },
+  { "id": "m-e-13", "category": "emoji", "type": "multiple-choice", "difficulty": 4, "text": "⭐⭐⭐=9，那么 ⭐⭐⭐⭐⭐=？", "options": ["15", "12", "18"], "answer": "15", "explanation": "3个星星是9，那1个星星是3。5个星星就是5个3。" },
+  { "id": "m-e-14", "category": "emoji", "type": "multiple-choice", "difficulty": 3, "text": "🐱🐱=12，🐶🐶=8，那么 🐱+🐶=？", "options": ["10", "20", "9"], "answer": "10", "explanation": "两只猫是12，一只猫是6；两只狗是8，一只狗是4。6+4=10。" },
+  { "id": "m-e-15", "category": "emoji", "type": "multiple-choice", "difficulty": 4, "text": "🌸+🌺=10，🌸=🌺+2，那么 🌸=？", "options": ["6", "5", "4"], "answer": "6", "explanation": "两朵花加起来是10，大花比小花多2。想想：哪两个数相差2，加起来是10？" }
+]
