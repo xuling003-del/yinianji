@@ -12,7 +12,7 @@ export const LessonViewer: React.FC<{
   userSettings: ParentSettings;
   finishedCount: number; 
   initialSession?: SessionState; // Prop for resume capability
-  onComplete: (points: number, questionIds: string[], stats: LevelStats, reward: InventoryItem | null, wrongQuestionIds: string[]) => void;
+  onComplete: (points: number, questionIds: string[], stats: LevelStats, reward: InventoryItem | null, wrongQuestionIds: string[], skippedQuestionIds: string[]) => void;
   onSaveProgress: (state: SessionState) => void; // Callback to save progress
   onClose: () => void;
 }> = ({ lesson, streak, userSettings, finishedCount, initialSession, onComplete, onSaveProgress, onClose }) => {
@@ -35,6 +35,12 @@ export const LessonViewer: React.FC<{
   );
   // New: Track specific wrong question IDs
   const [wrongQuestionIds, setWrongQuestionIds] = useState<string[]>(() => initialSession ? initialSession.wrongQuestionIds || [] : []);
+  
+  // Track skipped questions
+  const [skippedQuestionIds, setSkippedQuestionIds] = useState<string[]>(() => initialSession ? initialSession.skippedQuestionIds || [] : []);
+
+  // New: Track consecutive wrong attempts for the CURRENT question
+  const [currentWrongAttempts, setCurrentWrongAttempts] = useState(0);
 
   const [currentCombo, setCurrentCombo] = useState(() => initialSession ? initialSession.currentCombo : 0);
   const [maxCombo, setMaxCombo] = useState(() => initialSession ? initialSession.maxCombo : 0);
@@ -79,7 +85,8 @@ export const LessonViewer: React.FC<{
     currentCombo,
     maxCombo,
     accumulatedTime: calculateTotalTime(),
-    wrongQuestionIds
+    wrongQuestionIds,
+    skippedQuestionIds
   });
 
   const handleClose = () => {
@@ -93,6 +100,7 @@ export const LessonViewer: React.FC<{
     setFeedback(null);
     setSelected(null);
     setScrambledSelected([]);
+    setCurrentWrongAttempts(0); // Reset attempt counter for new question
     if (!q) return;
     if (q.type === 'fill-in-the-blank') {
       const numBlanks = q.text.split('（ ）').length - 1;
@@ -117,14 +125,21 @@ export const LessonViewer: React.FC<{
     if (!q) return;
     playIncorrect();
     setFeedback({ msg: q.explanation, ok: false });
+    
+    // Update stats
     setMistakesByCat(prev => ({
       ...prev,
       [q.category]: (prev[q.category] || 0) + 1
     }));
+    
     // Add to wrong list if not already there
     if (!wrongQuestionIds.includes(q.id)) {
       setWrongQuestionIds(prev => [...prev, q.id]);
     }
+    
+    // Increment wrong attempts for this specific question
+    setCurrentWrongAttempts(prev => prev + 1);
+    
     setCurrentCombo(0);
   };
 
@@ -219,7 +234,8 @@ export const LessonViewer: React.FC<{
         currentCombo,
         maxCombo,
         accumulatedTime: calculateTotalTime(),
-        wrongQuestionIds
+        wrongQuestionIds,
+        skippedQuestionIds
       });
     } else {
       playFanfare();
@@ -240,6 +256,13 @@ export const LessonViewer: React.FC<{
        setBlankSlots(Array(numBlanks).fill(''));
        if (q.options) setBlankBank(shuffleArray([...q.options]));
     }
+  };
+  
+  const handleSkip = () => {
+    if (!q) return;
+    // Track that this question was skipped
+    setSkippedQuestionIds(prev => [...prev, q.id]);
+    handleNext();
   };
 
   // --- Treasure Chest Logic ---
@@ -345,7 +368,7 @@ export const LessonViewer: React.FC<{
                 mistakesByCat, 
                 maxCombo, 
                 timestamp: Date.now() 
-            }, reward, wrongQuestionIds);
+            }, reward, wrongQuestionIds, skippedQuestionIds);
           }, 3500);
        }, 500); // Short explosion duration
     }, 1500); // Shaking duration
@@ -482,7 +505,18 @@ export const LessonViewer: React.FC<{
                       <p className="text-base md:text-xl font-medium text-gray-700 mt-1 md:mt-2 font-standard leading-normal">{feedback.msg}</p>
                    </div>
                 </div>
-                {feedback.ok ? <button onClick={handleNext} className="w-full mt-4 md:mt-6 py-3 md:py-4 bg-sky-600 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#0284c7] active:shadow-none active:translate-y-1">继续前进 ➡️</button> : <button onClick={handleRetry} className="w-full mt-4 md:mt-6 py-3 md:py-4 bg-amber-500 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#d97706] active:shadow-none active:translate-y-1">重做一遍 ↩️</button>}
+                {feedback.ok ? (
+                  <button onClick={handleNext} className="w-full mt-4 md:mt-6 py-3 md:py-4 bg-sky-600 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#0284c7] active:shadow-none active:translate-y-1">继续前进 ➡️</button>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <button onClick={handleRetry} className="w-full mt-4 md:mt-6 py-3 md:py-4 bg-amber-500 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#d97706] active:shadow-none active:translate-y-1">重做一遍 ↩️</button>
+                    {currentWrongAttempts >= 5 && (
+                       <button onClick={handleSkip} className="text-gray-400 text-sm md:text-base font-bold underline decoration-dashed underline-offset-4 hover:text-gray-600 transition-colors py-2">
+                         太难了？跳过这题 ⏭️
+                       </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

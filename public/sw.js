@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'quest-island-v37-split-data';
+const CACHE_NAME = 'quest-island-v38-complete-data';
 
 // 核心文件：必须存在，否则 Service Worker 安装失败
 // 注意：移除了 esm.sh 的外部依赖，因为我们现在让 Vite 将 React 打包到本地文件中，这样离线更稳定。
@@ -11,8 +11,11 @@ const CORE_ASSETS = [
   '/data/math/basic.json',
   '/data/math/application.json',
   '/data/math/logic.json',
+  '/data/math/emoji.json',
   '/data/chinese/sentence.json',
   '/data/chinese/word.json',
+  '/data/chinese/punctuation.json',
+  '/data/chinese/antonym.json',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap'
 ];
@@ -23,7 +26,11 @@ const HONOR_ASSETS = [
   '/honor/shengli.png',  // 胜利勋章
   '/honor/zhihui.png',   // 智慧光环
   '/honor/shandian.png', // 闪电侠
-  '/honor/wanmei.png'    // 完美风暴
+  '/honor/wanmei.png',   // 完美风暴
+  '/honor/baifa.png',    // 百发百中
+  '/honor/zhishi.png',   // 知识达人
+  '/honor/siwei.png',    // 思维大师
+  '/honor/qicai.png'     // 七彩收集家
 ];
 
 // 2. 收集卡片 (Collection Cards) - 修正为 /media/ 目录下的绝对路径

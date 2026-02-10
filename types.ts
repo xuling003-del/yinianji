@@ -99,6 +99,12 @@ export interface SessionState {
   maxCombo: number;
   accumulatedTime: number; // Time spent in previous sessions for this level
   wrongQuestionIds: string[]; // Track which questions were wrong in this specific session
+  skippedQuestionIds: string[]; // Track which questions were skipped (to avoid adding to review)
+}
+
+export interface PendingMistake {
+  levelIndex: number; // The 'finishedCount' when this mistake happened
+  questionIds: string[];
 }
 
 export interface UserState {
@@ -126,6 +132,7 @@ export interface UserState {
 
   // Smart Learning State
   mistakeQueue: string[]; // IDs of questions the user got wrong and needs to review
+  pendingMistakes: PendingMistake[]; // Mistakes waiting for the "gap" to pass before review
 
   // New Settings Fields
   parentSettings: ParentSettings;

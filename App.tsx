@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, LevelStats, InventoryItem, DailyStats, SessionState, BeforeInstallPromptEvent, Question, QuestionCategory } from './types';
+import { View, LevelStats, InventoryItem, DailyStats, SessionState, BeforeInstallPromptEvent, Question, QuestionCategory, PendingMistake } from './types';
 import { generateLesson } from './constants';
 import { getTodayStr } from './utils/helpers';
 import { useGameState } from './hooks/useGameState';
@@ -132,7 +132,7 @@ export default function App() {
             }));
           }}
           // Fix: Explicitly type callback arguments to ensure correct arithmetic operations
-          onComplete={(p, qIds, lessonStats: LevelStats, reward: InventoryItem | null, wrongQuestionIds: string[]) => {
+          onComplete={(p, qIds, lessonStats: LevelStats, reward: InventoryItem | null, wrongQuestionIds: string[], skippedQuestionIds: string[]) => {
             const today = getTodayStr();
             const currentStats: DailyStats = user.statsHistory[today] || {
               date: today,
@@ -226,18 +226,49 @@ export default function App() {
               newUnlocks.push('collection_king');
             }
 
-            // --- Smart Learning: Update Mistake Queue ---
-            // 1. Remove questions that were in the queue but got answered correctly this time
-            // (If a question ID is in qIds but NOT in wrongQuestionIds, it was correct)
-            const answeredCorrectlyIds = qIds.filter(id => !wrongQuestionIds.includes(id));
-            const newMistakeQueue = user.mistakeQueue.filter(id => !answeredCorrectlyIds.includes(id));
+            // --- Smart Learning: Update Mistake Queue with Delay & Skipping Logic ---
             
-            // 2. Add new wrong questions (avoid duplicates)
-            wrongQuestionIds.forEach(id => {
-              if (!newMistakeQueue.includes(id)) {
-                newMistakeQueue.push(id);
-              }
+            // 1. Remove questions that were in the queue but got answered correctly this time
+            // We only remove if it wasn't skipped. If skipped, we assume it's still "unknown" or "problematic".
+            // But if skipped, it shouldn't be in the answered list for removal logic?
+            // Wait, if it's skipped, it IS in qIds (lesson questions).
+            // Logic: Remove from mistakeQueue ONLY IF (in qIds) AND (NOT in wrongQuestionIds) AND (NOT in skippedQuestionIds).
+            // Note: wrongQuestionIds includes skipped ones usually (due to 5 attempts), but let's be explicit.
+            
+            const answeredCorrectlyIds = qIds.filter(id => !wrongQuestionIds.includes(id) && !skippedQuestionIds.includes(id));
+            let newMistakeQueue = user.mistakeQueue.filter(id => !answeredCorrectlyIds.includes(id));
+            
+            // 2. Manage Delayed Review (Pending Mistakes)
+            let newPendingMistakes = [...(user.pendingMistakes || [])];
+            
+            // Move eligible pending mistakes to active queue
+            // Rule: "Gap of 2 levels". If current level completed is N (completedCount), 
+            // mistakes from level N-3 (gap of 2: N-2, N-1) are ready?
+            // Let's use simple logic: if (currentCount - pending.levelIndex) >= 2.
+            const currentCount = completedCount; 
+            
+            const eligibleToMove = newPendingMistakes.filter(p => (currentCount - p.levelIndex) >= 2);
+            const keepInPending = newPendingMistakes.filter(p => (currentCount - p.levelIndex) < 2);
+            
+            eligibleToMove.forEach(p => {
+               p.questionIds.forEach(id => {
+                  if (!newMistakeQueue.includes(id)) newMistakeQueue.push(id);
+               });
             });
+            
+            newPendingMistakes = keepInPending;
+
+            // 3. Add NEW mistakes to Pending (excluding skipped ones)
+            // Filter out skipped IDs from wrong IDs
+            const effectiveWrongIds = wrongQuestionIds.filter(id => !skippedQuestionIds.includes(id));
+            
+            if (effectiveWrongIds.length > 0) {
+               // Add to pending, tagged with current level count
+               newPendingMistakes.push({
+                  levelIndex: currentCount,
+                  questionIds: effectiveWrongIds
+               });
+            }
 
             setUser(prev => ({
               ...prev,
@@ -256,7 +287,8 @@ export default function App() {
               consecutivePerfectLevels: newConsecutive,
               totalTimeSpent: newTotalTime,
               totalCorrectAnswers: newTotalCorrect,
-              mistakeQueue: newMistakeQueue
+              mistakeQueue: newMistakeQueue,
+              pendingMistakes: newPendingMistakes
             }));
             setView(View.MAP);
           }}

@@ -32,6 +32,7 @@ export function useGameState() {
         totalCorrectAnswers: parsed.totalCorrectAnswers || 0,
         // Smart Learning
         mistakeQueue: parsed.mistakeQueue || [],
+        pendingMistakes: parsed.pendingMistakes || [],
         // Update: Default fallback for decorations is now empty for pet/building
         activeDecorations: parsed.activeDecorations || { theme: 'theme_sky', pet: '', building: '' },
         currentSession: parsed.currentSession
@@ -60,6 +61,7 @@ export function useGameState() {
       totalCorrectAnswers: 0,
       // Smart Learning
       mistakeQueue: [],
+      pendingMistakes: [],
       // Update: Initial state has no active pet or building
       activeDecorations: { theme: 'theme_sky', pet: '', building: '' },
       currentSession: undefined
