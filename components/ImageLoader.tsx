@@ -4,6 +4,7 @@ import { generateCardDataUri } from '../utils/helpers';
 
 interface ImageLoaderProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackText?: string;
+  fallbackType?: 'honor' | 'collection' | 'default';
   skeletonClassName?: string;
 }
 
@@ -12,6 +13,7 @@ export const ImageLoader: React.FC<ImageLoaderProps> = ({
   alt, 
   className, 
   fallbackText = 'IMAGE', 
+  fallbackType = 'default',
   skeletonClassName = 'bg-gray-200 animate-pulse',
   ...props 
 }) => {
@@ -25,10 +27,6 @@ export const ImageLoader: React.FC<ImageLoaderProps> = ({
     setStatus('error');
   };
 
-  // Add a cache buster parameter to src if it's an API call or mutable resource
-  // For static assets, we usually don't need it, but the user's legacy code used ?v=1
-  // We'll keep the src clean here and let the parent handle cache busting if needed.
-  
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {/* Skeleton / Loading State */}
@@ -51,9 +49,9 @@ export const ImageLoader: React.FC<ImageLoaderProps> = ({
       {/* Fallback */}
       {status === 'error' && (
         <img 
-          src={generateCardDataUri(fallbackText)}
+          src={generateCardDataUri(fallbackText, fallbackType)}
           alt="Fallback"
-          className="w-full h-full object-contain p-2 opacity-80"
+          className="w-full h-full object-contain p-2 opacity-100"
         />
       )}
     </div>

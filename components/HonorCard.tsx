@@ -37,7 +37,8 @@ export const HonorCard: React.FC<HonorCardProps> = ({ card, unlocked, isFlipped 
                  src={`${card.image}?v=1`} 
                  alt={card.title}
                  className={`w-full h-full ${isModal ? 'object-cover' : 'object-contain p-1'}`}
-                 fallbackText={card.title.substring(0, 1)}
+                 fallbackText={card.title}
+                 fallbackType="honor"
                />
             ) : (
                <div className="text-3xl md:text-5xl opacity-30">🔒</div>

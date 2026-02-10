@@ -311,8 +311,10 @@ export const LessonViewer: React.FC<{
           let newCardIndex = -1;
 
           for (const idx of shuffledIndices) {
-             const path = `media/card_${idx}.png`;
-             if (!ownedCardPaths.has(path)) {
+             // Correctly use absolute paths for consistency
+             const path = `/media/card_${idx}.png`;
+             // Also check legacy relative path just in case
+             if (!ownedCardPaths.has(path) && !ownedCardPaths.has(`media/card_${idx}.png`)) {
                 newCardIndex = idx;
                 break;
              }
@@ -323,7 +325,7 @@ export const LessonViewer: React.FC<{
                 id: `card_${Date.now()}_${newCardIndex}`,
                 type: 'card',
                 name: `珍藏卡片 #${newCardIndex}`,
-                icon: `media/card_${newCardIndex}.png`,
+                icon: `/media/card_${newCardIndex}.png`, // Ensure leading slash
                 obtainedAt: Date.now()
              };
           }
@@ -564,6 +566,8 @@ export const LessonViewer: React.FC<{
                            src={`${wonReward.icon}?v=1`} 
                            alt={wonReward.name} 
                            className="w-full h-full p-2"
+                           fallbackType="collection"
+                           fallbackText={wonReward.name.replace('珍藏卡片 #', '')}
                          />
                       </div>
                    ) : (

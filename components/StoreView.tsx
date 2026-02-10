@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { UserState, AchievementCard } from '../types';
 import { DECORATIONS, AVATARS } from '../constants';
@@ -262,7 +263,8 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                                src={`${card.image}?v=1`} 
                                alt={card.title}
                                className="w-full h-full object-contain"
-                               fallbackText={card.title.substring(0, 1)}
+                               fallbackText={card.title}
+                               fallbackType="honor"
                              />
                           ) : (
                              <div className="text-3xl md:text-4xl opacity-30">🔒</div>
@@ -339,7 +341,8 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                                      src={`${c.icon}?v=1`} 
                                      alt={c.name} 
                                      className="w-full h-full"
-                                     fallbackText={c.name.replace(/\D/g, '') || 'C'}
+                                     fallbackText={c.name.replace('珍藏卡片 #', '')}
+                                     fallbackType="collection"
                                    />
                                 </div>
                                 <div className="text-[10px] md:text-xs text-yellow-700 font-bold text-center truncate w-full">{c.name}</div>
