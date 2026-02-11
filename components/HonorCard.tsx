@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 import { AchievementCard } from '../types';
 import { ImageLoader } from './ImageLoader';
@@ -34,12 +34,10 @@ export const HonorCard: React.FC<HonorCardProps> = ({ card, unlocked, isFlipped 
           <div className={`w-full ${isModal ? 'h-full' : 'aspect-square bg-gray-50 mb-1 rounded-lg'} flex items-center justify-center overflow-hidden relative`}>
             {unlocked ? (
                <ImageLoader 
-                 src={card.image}
+                 src={card.image} 
                  alt={card.title}
                  className={`w-full h-full ${isModal ? 'object-cover' : 'object-contain p-1'}`}
-                 fallbackText={card.title}
-                 fallbackType="honor"
-                 fallbackIcon={card.icon}
+                 fallbackText={card.title.substring(0, 1)}
                />
             ) : (
                <div className="text-3xl md:text-5xl opacity-30">🔒</div>
@@ -73,3 +71,4 @@ export const HonorCard: React.FC<HonorCardProps> = ({ card, unlocked, isFlipped 
     </div>
   );
 };
+

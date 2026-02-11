@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Lesson, ParentSettings, SessionState, LevelStats, InventoryItem, QuestionCategory, CustomReward } from '../types';
 import { STICKERS, COLLECTION_CARD_COUNT } from '../constants';
@@ -113,7 +113,7 @@ export const LessonViewer: React.FC<{
 
   const handleCorrect = () => {
     playCorrect();
-    setFeedback({ msg: "太棒了！完全正确！🌟", ok: true });
+    setFeedback({ msg: "太棒了！完全正确！", ok: true });
     const newCombo = currentCombo + 1;
     setCurrentCombo(newCombo);
     if (newCombo > maxCombo) {
@@ -265,26 +265,6 @@ export const LessonViewer: React.FC<{
     handleNext();
   };
 
-  // Helper to ensure clean absolute paths for images
-  // Fixes query params, removes legacy 'dist/' prefix, and ensures path starts with '/'
-  const cleanPath = (path: string) => {
-    if (!path) return '';
-    let clean = path.split('?')[0]; 
-    
-    // Auto-remove 'dist/' prefix if present (legacy data fix)
-    if (clean.includes('dist/')) {
-       clean = clean.replace('dist/', '');
-    }
-    
-    // Ensure absolute path if not data/http
-    if (!clean.startsWith('/') && !clean.startsWith('http') && !clean.startsWith('data:')) {
-       clean = '/' + clean;
-    }
-    
-    // Cleanup any double slashes (e.g. //honor/...)
-    return clean.replace('//', '/');
-  };
-
   // --- Treasure Chest Logic ---
   const handleOpenChest = () => {
     if (chestState !== 'idle') return;
@@ -331,12 +311,8 @@ export const LessonViewer: React.FC<{
           let newCardIndex = -1;
 
           for (const idx of shuffledIndices) {
-             const distPath = `dist/media/card_${idx}.png`;
-             const relativePath = `media/card_${idx}.png`;
-             const absolutePath = `/media/card_${idx}.png`;
-             
-             // Check all possible variants to avoid duplicates
-             if (!ownedCardPaths.has(distPath) && !ownedCardPaths.has(relativePath) && !ownedCardPaths.has(absolutePath)) {
+             const path = `/media/card_${idx}.png`;
+             if (!ownedCardPaths.has(path)) {
                 newCardIndex = idx;
                 break;
              }
@@ -347,7 +323,7 @@ export const LessonViewer: React.FC<{
                 id: `card_${Date.now()}_${newCardIndex}`,
                 type: 'card',
                 name: `珍藏卡片 #${newCardIndex}`,
-                icon: `/media/card_${newCardIndex}.png`, // Use standard absolute path
+                icon: `/media/card_${newCardIndex}.png`,
                 obtainedAt: Date.now()
              };
           }
@@ -479,7 +455,7 @@ export const LessonViewer: React.FC<{
                <h2 className="text-2xl md:text-4xl font-black text-sky-800 mb-2 md:mb-4">{lesson.title}</h2>
                <p className="text-lg md:text-2xl text-gray-600 font-bold leading-relaxed">{lesson.story}</p>
                {streak > 1 && (
-                  <div className="mt-4 inline-flex items-center gap-2 bg-orange-100 text-orange-600 px-4 py-2 rounded-full font-black animate-bounce">
+                 <div className="mt-4 inline-flex items-center gap-2 bg-orange-100 text-orange-600 px-4 py-2 rounded-full font-black animate-bounce">
                     <span>🔥</span> 连续学习第 {streak} 天！继续加油！
                   </div>
                )}
@@ -517,7 +493,7 @@ export const LessonViewer: React.FC<{
                      <button key={i} onClick={() => { if (feedback) return; playClick(); const next = [...scrambledSelected]; next.splice(i, 1); setScrambledSelected(next); }} className="bg-amber-400 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-lg md:text-2xl font-bold shadow-sm animate-pop font-standard">{w}</button>
                    ))}
                 </div>
-                {!feedback && <button onClick={handleUnscrambleSubmit} disabled={scrambledSelected.length === 0} className="w-full py-3 md:py-5 bg-sky-500 disabled:bg-gray-300 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#0369a1] active:shadow-none active:translate-y-1 transition-all">拼好了！🚀</button>}
+                {!feedback && <button onClick={handleUnscrambleSubmit} disabled={scrambledSelected.length === 0} className="w-full py-3 md:py-5 bg-sky-500 disabled:bg-gray-300 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#0369a1] active:shadow-none active:translate-y-1 transition-all">拼好了！✨</button>}
               </div>
             )}
             {feedback && (
@@ -525,7 +501,7 @@ export const LessonViewer: React.FC<{
                 <div className="flex gap-3 md:gap-4 items-start">
                    <span className="text-4xl md:text-6xl">{feedback.ok ? '🎉' : '💡'}</span>
                    <div className="flex-1">
-                      <h4 className={`text-lg md:text-2xl font-black ${feedback.ok ? 'text-green-600' : 'text-amber-600'}`}>{feedback.ok ? "太棒啦！" : "小贴士"}</h4>
+                      <h4 className={`text-lg md:text-2xl font-black ${feedback.ok ? 'text-green-600' : 'text-amber-600'}`}>{feedback.ok ? "太棒啦！" : "小提示"}</h4>
                       <p className="text-base md:text-xl font-medium text-gray-700 mt-1 md:mt-2 font-standard leading-normal">{feedback.msg}</p>
                    </div>
                 </div>
@@ -533,7 +509,7 @@ export const LessonViewer: React.FC<{
                   <button onClick={handleNext} className="w-full mt-4 md:mt-6 py-3 md:py-4 bg-sky-600 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#0284c7] active:shadow-none active:translate-y-1">继续前进 ➡️</button>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    <button onClick={handleRetry} className="w-full mt-4 md:mt-6 py-3 md:py-4 bg-amber-500 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#d97706] active:shadow-none active:translate-y-1">重做一遍 ↩️</button>
+                    <button onClick={handleRetry} className="w-full mt-4 md:mt-6 py-3 md:py-4 bg-amber-500 text-white rounded-xl md:rounded-2xl text-xl md:text-2xl font-black shadow-[0_4px_0_0_#d97706] active:shadow-none active:translate-y-1">再做一遍 ↩️</button>
                     {currentWrongAttempts >= 5 && (
                        <button onClick={handleSkip} className="text-gray-400 text-sm md:text-base font-bold underline decoration-dashed underline-offset-4 hover:text-gray-600 transition-colors py-2">
                          太难了？跳过这题 ⏭️
@@ -585,12 +561,9 @@ export const LessonViewer: React.FC<{
                    {wonReward?.isCard ? (
                       <div className="w-48 h-48 md:w-64 md:h-64 mb-6 rounded-2xl border-4 border-amber-300 shadow-xl overflow-hidden island-float bg-white relative">
                          <ImageLoader 
-                           src={cleanPath(wonReward.icon)}
+                           src={wonReward.icon} 
                            alt={wonReward.name} 
                            className="w-full h-full p-2"
-                           fallbackType="collection"
-                           fallbackText={wonReward.name.replace('珍藏卡片 #', '')}
-                           fallbackIcon={wonReward.name.match(/\d+/)?.[0] || '🃏'}
                          />
                       </div>
                    ) : (
@@ -608,3 +581,5 @@ export const LessonViewer: React.FC<{
     </div>
   );
 };
+
+

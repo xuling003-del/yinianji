@@ -1,7 +1,5 @@
+﻿const CACHE_NAME = 'quest-island-v40-utf8-and-cache-stability';
 
-const CACHE_NAME = 'quest-island-v44-absolute-paths';
-
-// 核心文件：必须存在
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -14,12 +12,9 @@ const CORE_ASSETS = [
   '/data/chinese/sentence.json',
   '/data/chinese/word.json',
   '/data/chinese/punctuation.json',
-  '/data/chinese/antonym.json',
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap'
+  '/data/chinese/antonym.json'
 ];
 
-// 1. 荣誉卡片 (Achievement Cards) - 使用绝对路径
 const HONOR_ASSETS = [
   '/honor/jianchi.png',
   '/honor/shengli.png',
@@ -32,129 +27,125 @@ const HONOR_ASSETS = [
   '/honor/qicai.png'
 ];
 
-// 2. 收集卡片 (Collection Cards) - 使用绝对路径
-const COLLECTION_ASSETS = [
-  '/media/card_1.png',
-  '/media/card_2.png',
-  '/media/card_3.png',
-  '/media/card_4.png',
-  '/media/card_5.png',
-  '/media/card_6.png',
-  '/media/card_7.png',
-  '/media/card_8.png',
-  '/media/card_9.png',
-  '/media/card_10.png'
-];
+const COLLECTION_ASSETS = Array.from({ length: 10 }, (_, i) => `/media/card_${i + 1}.png`);
 
-// 可选文件
 const OPTIONAL_ASSETS = [
-  '/icon/icon-192x192.png',
-  '/icon/icon-512x512.png',
+  '/media/icon/icon-192x192.png',
+  '/media/icon/icon-512x512.png',
   ...HONOR_ASSETS,
   ...COLLECTION_ASSETS
 ];
 
-// Install: 预缓存
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      // 1. 缓存核心文件
       try {
         await cache.addAll(CORE_ASSETS);
       } catch (e) {
-        console.error('Pre-cache core failed:', e);
+        console.error('Pre-cache failed:', e);
       }
-      
-      // 2. 尝试缓存可选文件
+
       const cachePromises = OPTIONAL_ASSETS.map(async (asset) => {
         try {
-           // 使用 Request 对象确保缓存键与 fetch 请求匹配
-           await cache.add(new Request(asset, { mode: 'no-cors' }));
-        } catch (err) {
-           console.log(`Failed to cache optional asset: ${asset}`, err);
+          const response = await fetch(asset);
+          if (response.ok) {
+            await cache.put(asset, response);
+          }
+        } catch (_err) {
+          // Ignore optional asset errors.
         }
       });
-      
+
       await Promise.all(cachePromises);
     })
   );
 });
 
-// Activate: 清理旧缓存
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              return caches.delete(cacheName);
+            }
+            return Promise.resolve(false);
+          })
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch: 处理请求
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // HTML 页面：网络优先
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
-        .then((networkResponse) => {
-          return caches.open(CACHE_NAME).then((cache) => {
+        .then((networkResponse) =>
+          caches.open(CACHE_NAME).then((cache) => {
             cache.put('/index.html', networkResponse.clone());
             return networkResponse;
-          });
-        })
-        .catch(() => {
-          return caches.match('/index.html');
-        })
+          })
+        )
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }
 
-  // 静态资源：缓存优先
-  if (event.request.destination === 'script' || 
-      event.request.destination === 'style' || 
-      event.request.destination === 'image' ||
-      event.request.destination === 'font' ||
-      url.pathname.includes('/honor/') ||
-      url.pathname.includes('/media/') ||
-      url.pathname.includes('/data/') ||
-      url.hostname === 'cdn.tailwindcss.com' ||
-      url.hostname.includes('googleapis.com') ||
-      url.hostname.includes('gstatic.com')) {
-      
+  if (
+    event.request.destination === 'script' ||
+    event.request.destination === 'style' ||
+    event.request.destination === 'image' ||
+    event.request.destination === 'font' ||
+    url.pathname.includes('/assets/') ||
+    url.pathname.includes('/media/') ||
+    url.pathname.includes('/honor/') ||
+    url.pathname.includes('/data/')
+  ) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         if (cachedResponse) {
           return cachedResponse;
         }
 
-        return fetch(event.request).then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-            if (networkResponse && networkResponse.type === 'opaque') {
-               // Opaque response for CDNs, cache it
-            } else if (!networkResponse || networkResponse.status !== 200) {
-               return networkResponse;
+        return fetch(event.request)
+          .then((networkResponse) => {
+            const isValid =
+              networkResponse &&
+              (networkResponse.status === 200 ||
+                (networkResponse.status === 0 && networkResponse.type === 'opaque'));
+
+            if (!isValid) {
+              return networkResponse;
             }
-          }
 
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            try {
-              cache.put(event.request, responseToCache);
-            } catch (err) {}
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              try {
+                cache.put(event.request, responseToCache);
+              } catch (_err) {
+                // Ignore cache put errors.
+              }
+            });
+
+            return networkResponse;
+          })
+          .catch(() => {
+            if (
+              event.request.destination === 'image' ||
+              event.request.destination === 'script' ||
+              event.request.destination === 'style' ||
+              event.request.destination === 'font'
+            ) {
+              return caches.match(url.pathname);
+            }
+            return undefined;
           });
-
-          return networkResponse;
-        }).catch(() => {
-          // Network failed and no cache
-        });
       })
     );
   }

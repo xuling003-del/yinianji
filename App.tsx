@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect } from 'react';
 import { View, LevelStats, InventoryItem, DailyStats, SessionState, BeforeInstallPromptEvent, Question, QuestionCategory, PendingMistake } from './types';
 import { generateLesson } from './constants';
@@ -95,7 +95,7 @@ export default function App() {
       <div className="min-h-screen bg-sky-50 flex flex-col items-center justify-center font-standard">
         <div className="text-6xl animate-bounce mb-4">🏝️</div>
         <div className="text-sky-600 font-bold text-xl">正在前往奇幻岛...</div>
-        <div className="text-sky-400 text-sm mt-2">加载题库资源中</div>
+        <div className="text-sky-400 text-sm mt-2">加载题库资源中...</div>
       </div>
     );
   }
@@ -310,3 +310,4 @@ export default function App() {
     </div>
   );
 }
+

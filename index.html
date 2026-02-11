@@ -1,42 +1,28 @@
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>奇幻学习岛</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
+
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#f0f9ff">
 
-    <!-- iOS / Safari Standalone Mode Support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="奇幻岛">
-    
-    <!-- Fallback Icon (Emoji) if image files are missing -->
+    <meta name="apple-mobile-web-app-title" content="奇幻学习岛">
+
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏝️</text></svg>">
-    
-    <!-- Android Legacy Support -->
+
     <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- Icons (Try to load these, but fallback to SVG above if missing) -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon/icon-192x192.png">
-    <link rel="apple-touch-icon" href="/icon/icon-192x192.png">
-    
-    <!-- Fonts Preconnect -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+    <link rel="icon" type="image/png" sizes="192x192" href="./media/icon/icon-192x192.png">
+    <link rel="apple-touch-icon" href="./media/icon/icon-192x192.png">
+
     <style>
         :root {
-            --font-playful: 'ZCOOL KuaiLe', cursive;
-            --font-standard: 'Noto Sans SC', sans-serif;
+            --font-playful: 'ZCOOL KuaiLe', 'Arial Black', cursive, sans-serif;
+            --font-standard: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans SC', sans-serif;
         }
         body {
             font-family: var(--font-standard);
@@ -44,11 +30,9 @@
             user-select: none;
             color: #334155;
             -webkit-tap-highlight-color: transparent;
-            /* Handle iOS safe areas in standalone mode */
             padding-bottom: env(safe-area-inset-bottom);
-            overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
+            overscroll-behavior-y: none;
         }
-        /* Only H1 and H2 use the playful font by default now. H3 (questions) uses standard. */
         h1, h2, .font-playful {
             font-family: var(--font-playful);
         }
@@ -100,37 +84,42 @@
             0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
             50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
         }
-        /* Custom scrollbar hiding for cleaner mobile look */
         ::-webkit-scrollbar {
             width: 0px;
             background: transparent;
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "vite": "https://esm.sh/vite@^7.3.1"
-  }
-}
-</script>
 </head>
 <body class="bg-sky-50 overflow-x-hidden">
     <div id="root" class="min-h-screen"></div>
-    <script type="module" src="/index.tsx"></script>
-    
-    <!-- PWA Service Worker Registration -->
+    <script type="module" src="./index.tsx"></script>
+
     <script>
+      const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor;
+
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
+        window.addEventListener('load', async () => {
+          if (isCapacitorNative) {
+            try {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map((r) => r.unregister()));
+              if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map((k) => caches.delete(k)));
+              }
+              console.log('Native app mode: cleared old SW registrations and caches.');
+            } catch (e) {
+              console.log('Native app cache cleanup failed:', e);
+            }
+            return;
+          }
+
+          navigator.serviceWorker
+            .register('./sw.js')
+            .then((registration) => {
               console.log('SW registered with scope:', registration.scope);
             })
-            .catch(registrationError => {
+            .catch((registrationError) => {
               console.log('SW registration failed: ', registrationError);
             });
         });

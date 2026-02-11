@@ -22,35 +22,16 @@ export function getTimeOfDay(): TimeOfDay {
   return 'night';
 }
 
-export function generateCardDataUri(text: string, type: 'honor' | 'collection' | 'default' = 'default', icon?: string): string {
-  // Config Colors based on type
-  const isHonor = type === 'honor';
-  const isCollection = type === 'collection';
-  
-  let bgFill = '#f0f9ff';
-  let stroke = '#bae6fd';
-  let textColor = '#0284c7';
-  let iconColor = '#7dd3fc';
-
-  if (isCollection) {
-    bgFill = '#fffbeb'; // Amber-50
-    stroke = '#fde68a'; // Amber-200
-    textColor = '#b45309'; // Amber-700
-    iconColor = '#fed7aa'; // Amber-300
-  }
-
-  // Safe text truncation
-  const mainChar = icon || (text ? text.charAt(0) : '?');
-  const fullText = text || '';
-
-  const svg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
-    <rect width="100%" height="100%" fill="${bgFill}" stroke="${stroke}" stroke-width="10" rx="24" ry="24"/>
-    <circle cx="150" cy="160" r="80" fill="${iconColor}" fill-opacity="0.3"/>
-    <text x="150" y="200" font-family="sans-serif" font-size="100" fill="${textColor}" text-anchor="middle" font-weight="bold" dy=".3em">${mainChar}</text>
-    <text x="150" y="340" font-family="sans-serif" font-size="28" fill="${textColor}" text-anchor="middle" font-weight="bold">${fullText}</text>
+export function generateCardDataUri(text: string): string {
+  // Simple placeholder SVG generation for missing images
+  // Removed unescape to fix deprecated warning in strict mode, simplified encoding
+  const cleanText = text.replace(/[^\x00-\x7F]/g, "?"); // basic ASCII safety for btoa
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+    <rect width="100%" height="100%" fill="#f0f9ff" stroke="#bae6fd" stroke-width="4"/>
+    <text x="50%" y="50%" font-family="sans-serif" font-size="30" fill="#0ea5e9" text-anchor="middle" dy=".3em">${text.substring(0, 10)}</text>
   </svg>`;
   
-  // Use UTF-8 safe encoding for Data URI
-  return `data:image/svg+xml;base64,${window.btoa(unescape(encodeURIComponent(svg)))}`;
+  // Use a safer encoding approach for UTF8 chars
+  const encoded = window.btoa(unescape(encodeURIComponent(svg)));
+  return `data:image/svg+xml;base64,${encoded}`;
 }

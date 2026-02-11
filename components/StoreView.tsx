@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { UserState, AchievementCard } from '../types';
 import { DECORATIONS, AVATARS } from '../constants';
 import { playClick, playUnlock } from '../sound';
@@ -14,7 +13,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
   const { cards: honorCards, unlockedCards } = useCards(user, setUser);
   
   // For viewing Game Cards (Images) in bag
-  const [viewingImage, setViewingImage] = useState<{src: string, name: string, icon: string} | null>(null);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   // For Honor Card Zoom & Flip Logic
   const [viewingCard, setViewingCard] = useState<AchievementCard | null>(null);
@@ -39,27 +38,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
     }, 3000);
   };
 
-  // Helper to ensure clean absolute paths for images
-  // Fixes query params, removes legacy 'dist/' prefix, and ensures path starts with '/'
-  const cleanPath = (path: string) => {
-    if (!path) return '';
-    let clean = path.split('?')[0]; 
-    
-    // Auto-remove 'dist/' prefix if present (legacy data fix)
-    if (clean.includes('dist/')) {
-       clean = clean.replace('dist/', '');
-    }
-    
-    // Ensure absolute path if not data/http
-    if (!clean.startsWith('/') && !clean.startsWith('http') && !clean.startsWith('data:')) {
-       clean = '/' + clean;
-    }
-    
-    // Cleanup any double slashes (e.g. //honor/...)
-    return clean.replace('//', '/');
-  };
-
-  // Safe filtering
+  // Safe filtering: checking if 'i' exists before accessing 'i.type'
   const stickers = user.inventory?.filter(i => i && i.type === 'sticker') || [];
   const inventoryCards = user.inventory?.filter(i => i && i.type === 'card') || [];
   const coupons = user.inventory?.filter(i => i && i.type === 'custom_coupon') || [];
@@ -77,7 +56,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
             onClick={() => { playClick(); setActiveTab('deco'); }}
             className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${activeTab === 'deco' ? 'bg-amber-100 text-amber-600' : 'text-gray-400'}`}
           >
-            头像与装饰 🏰
+            头像与装扮 🎨
           </button>
           <button 
             onClick={() => { playClick(); setActiveTab('cards'); }}
@@ -98,10 +77,10 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
 
             {activeTab === 'deco' && (
               <div className="animate-fade-in space-y-6">
-                 {/* ... Avatars & Decorations (No changes) ... */}
                  
+                 {/* Avatars Section (Merged) */}
                  <div className="bg-white p-4 rounded-3xl border-4 border-purple-100">
-                   <h3 className="font-black text-lg mb-4 text-purple-800">🧙‍♂️ 魔法头像</h3>
+                   <h3 className="font-black text-lg mb-4 text-purple-800">🧙 魔法头像</h3>
                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     {AVATARS.map(a => {
                       const owned = user.unlockedItems.includes(a.id);
@@ -130,7 +109,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                  </div>
 
                  <div className="bg-white p-4 rounded-3xl border-4 border-sky-100">
-                   <h3 className="font-black text-lg mb-4 text-sky-800">🌈 岛屿主题</h3>
+                   <h3 className="font-black text-lg mb-4 text-sky-800">🏝 岛屿主题</h3>
                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {DECORATIONS.filter(d => d.type === 'theme').map(d => {
                         const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
@@ -172,36 +151,83 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                  </div>
 
                  <div className="bg-white p-4 rounded-3xl border-4 border-amber-100">
-                    <h3 className="font-black text-lg mb-4 text-amber-800">🏠 岛屿建筑</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {DECORATIONS.filter(d => d.type === 'building').map(d => {
-                            const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
-                            const active = user.activeDecorations.building === d.id;
-                            return (
-                                <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-amber-50 border-amber-500' : 'bg-gray-50 border-gray-100'}`}>
-                                    <div className="text-4xl">{d.icon}</div>
-                                    <span className="font-bold text-sm text-gray-700">{d.name}</span>
-                                    <button onClick={() => { if (active) { playClick(); setUser({...user, activeDecorations: {...user.activeDecorations, building: ''}}); return; } if (owned) { playClick(); setUser({...user, activeDecorations: {...user.activeDecorations, building: d.id}}); } else if (user.stars >= d.cost) { playUnlock(); setUser({...user, stars: user.stars - d.cost, unlockedItems: [...user.unlockedItems, d.id], activeDecorations: {...user.activeDecorations, building: d.id}}); } }} className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}>{active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}</button>
-                                </div>
-                            )
-                        })}
-                    </div>
+                   <h3 className="font-black text-lg mb-4 text-amber-800">🏠 岛屿建筑</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {DECORATIONS.filter(d => d.type === 'building').map(d => {
+                        const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
+                        const active = user.activeDecorations.building === d.id;
+                        return (
+                          <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-amber-50 border-amber-500' : 'bg-gray-50 border-gray-100'}`}>
+                             <div className="text-4xl">{d.icon}</div>
+                             <span className="font-bold text-sm text-gray-700">{d.name}</span>
+                             <button
+                               onClick={() => {
+                                 if (active) {
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, building: ''}});
+                                   return;
+                                 }
+                                 if (owned) {
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, building: d.id}});
+                                 } else if (user.stars >= d.cost) {
+                                   playUnlock();
+                                   setUser({
+                                     ...user, 
+                                     stars: user.stars - d.cost, 
+                                     unlockedItems: [...user.unlockedItems, d.id],
+                                     activeDecorations: {...user.activeDecorations, building: d.id}
+                                   });
+                                 }
+                               }}
+                               className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                             >
+                               {active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}
+                             </button>
+                          </div>
+                        )
+                      })}
+                   </div>
                  </div>
+
                  <div className="bg-white p-4 rounded-3xl border-4 border-rose-100">
-                    <h3 className="font-black text-lg mb-4 text-rose-800">🐾 岛屿宠物</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {DECORATIONS.filter(d => d.type === 'pet').map(d => {
-                            const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
-                            const active = user.activeDecorations.pet === d.id;
-                            return (
-                                <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-rose-50 border-rose-500' : 'bg-gray-50 border-gray-100'}`}>
-                                    <div className="text-4xl">{d.icon}</div>
-                                    <span className="font-bold text-sm text-gray-700">{d.name}</span>
-                                    <button onClick={() => { if (active) { playClick(); setUser({...user, activeDecorations: {...user.activeDecorations, pet: ''}}); return; } if (owned) { playClick(); setUser({...user, activeDecorations: {...user.activeDecorations, pet: d.id}}); } else if (user.stars >= d.cost) { playUnlock(); setUser({...user, stars: user.stars - d.cost, unlockedItems: [...user.unlockedItems, d.id], activeDecorations: {...user.activeDecorations, pet: d.id}}); } }} className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}>{active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}</button>
-                                </div>
-                            )
-                        })}
-                    </div>
+                   <h3 className="font-black text-lg mb-4 text-rose-800">🐾 岛屿宠物</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {DECORATIONS.filter(d => d.type === 'pet').map(d => {
+                        const owned = user.unlockedItems.includes(d.id) || d.cost === 0;
+                        const active = user.activeDecorations.pet === d.id;
+                        return (
+                          <div key={d.id} className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 ${active ? 'bg-rose-50 border-rose-500' : 'bg-gray-50 border-gray-100'}`}>
+                             <div className="text-4xl">{d.icon}</div>
+                             <span className="font-bold text-sm text-gray-700">{d.name}</span>
+                             <button
+                               onClick={() => {
+                                 if (active) {
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, pet: ''}});
+                                   return;
+                                 }
+                                 if (owned) {
+                                   playClick();
+                                   setUser({...user, activeDecorations: {...user.activeDecorations, pet: d.id}});
+                                 } else if (user.stars >= d.cost) {
+                                   playUnlock();
+                                   setUser({
+                                     ...user, 
+                                     stars: user.stars - d.cost, 
+                                     unlockedItems: [...user.unlockedItems, d.id],
+                                     activeDecorations: {...user.activeDecorations, pet: d.id}
+                                   });
+                                 }
+                               }}
+                               className={`text-xs px-3 py-1 rounded-full font-black ${active ? 'bg-green-500 text-white' : owned ? 'bg-sky-500 text-white' : user.stars >= d.cost ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-400'}`}
+                             >
+                               {active ? '取消' : owned ? '使用' : `${d.cost} ⭐`}
+                             </button>
+                          </div>
+                        )
+                      })}
+                   </div>
                  </div>
               </div>
             )}
@@ -218,7 +244,7 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                       onClick={() => {
                          playClick();
                          if (unlocked) {
-                           setViewingCard({...card, image: cleanPath(card.image)});
+                           setViewingCard(card);
                            setIsCardFlipped(false);
                          } else {
                            handleLockedCardClick(card.id);
@@ -233,12 +259,10 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                         <div className="w-full h-full relative overflow-hidden rounded-lg mb-1 flex items-center justify-center bg-white/50">
                           {unlocked ? (
                              <ImageLoader 
-                               src={cleanPath(card.image)}
+                               src={card.image} 
                                alt={card.title}
                                className="w-full h-full object-contain"
-                               fallbackText={card.title}
-                               fallbackType="honor"
-                               fallbackIcon={card.icon}
+                               fallbackText={card.title.substring(0, 1)}
                              />
                           ) : (
                              <div className="text-3xl md:text-4xl opacity-30">🔒</div>
@@ -263,12 +287,13 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
 
             {activeTab === 'bag' && (
                <div className="space-y-8 animate-fade-in">
+                  
                   <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-sky-100">
                      <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
                         🎟️ 兑换券 <span className="text-sm font-normal text-gray-400">(找爸爸妈妈兑换)</span>
                      </h3>
                      {coupons.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">还未获得兑换券，去闯关开宝箱吧！</div>
+                        <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">还没有兑换券，快去闯关开宝箱吧！</div>
                      ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                            {coupons.map(c => (
@@ -278,7 +303,16 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                                    <div className="font-bold text-orange-800">{c.name}</div>
                                    <div className="text-xs text-orange-500">{new Date(c.obtainedAt).toLocaleDateString()} 获得</div>
                                 </div>
-                                <button onClick={() => { if(confirm('确定要兑换并消耗这张券吗？')) { setUser({...user, inventory: user.inventory.filter(i => i.id !== c.id)}); } }} className="px-3 py-1 bg-white text-orange-600 text-xs font-bold rounded-full border border-orange-200 active:scale-95">兑换</button>
+                                <button 
+                                  onClick={() => {
+                                     if(confirm('确定要兑换并消耗这张券吗？')) {
+                                       setUser({...user, inventory: user.inventory.filter(i => i.id !== c.id)});
+                                     }
+                                  }}
+                                  className="px-3 py-1 bg-white text-orange-600 text-xs font-bold rounded-full border border-orange-200 active:scale-95"
+                                >
+                                   兑换
+                                </button>
                              </div>
                            ))}
                         </div>
@@ -287,34 +321,31 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
 
                   <div className="bg-white p-4 md:p-6 rounded-3xl border-4 border-indigo-100">
                      <h3 className="font-black text-xl text-gray-700 mb-4 flex items-center gap-2">
-                        🦄 收藏集 <span className="text-sm font-normal text-gray-400">(贴纸与珍稀卡片)</span>
+                        📦 收藏集 <span className="text-sm font-normal text-gray-400">(贴纸与珍藏卡片)</span>
                      </h3>
                      {stickers.length === 0 && inventoryCards.length === 0 ? (
                         <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-xl">空空如也，快去探险吧！</div>
                      ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                           {inventoryCards.map(c => {
-                             const cardNum = c.name.match(/\d+/)?.[0] || '?';
-                             return (
-                               <div 
-                                 key={c.id} 
-                                 onClick={() => { playClick(); setViewingImage({ src: cleanPath(c.icon), name: c.name, icon: '🃏' }); }}
-                                 className="aspect-square flex flex-col items-center justify-center bg-yellow-50 rounded-xl border-2 border-yellow-200 p-2 cursor-pointer hover:scale-105 transition-transform"
-                               >
-                                  <div className="w-full h-full relative overflow-hidden rounded-lg mb-1 flex items-center justify-center">
-                                     <ImageLoader 
-                                       src={cleanPath(c.icon)}
-                                       alt={c.name} 
-                                       className="w-full h-full"
-                                       fallbackText={c.name}
-                                       fallbackType="collection"
-                                       fallbackIcon={cardNum} 
-                                     />
-                                  </div>
-                                  <div className="text-[10px] md:text-xs text-yellow-700 font-bold text-center truncate w-full">{c.name}</div>
-                               </div>
-                             );
-                           })}
+                           {/* Render Cards First */}
+                           {inventoryCards.map(c => (
+                             <div 
+                               key={c.id} 
+                               onClick={() => { playClick(); setViewingImage(c.icon); }}
+                               className="aspect-square flex flex-col items-center justify-center bg-yellow-50 rounded-xl border-2 border-yellow-200 p-2 cursor-pointer hover:scale-105 transition-transform"
+                             >
+                                <div className="w-full h-full relative overflow-hidden rounded-lg mb-1 flex items-center justify-center">
+                                   <ImageLoader 
+                                     src={c.icon} 
+                                     alt={c.name} 
+                                     className="w-full h-full"
+                                     fallbackText={c.name.replace(/\D/g, '') || 'C'}
+                                   />
+                                </div>
+                                <div className="text-[10px] md:text-xs text-yellow-700 font-bold text-center truncate w-full">{c.name}</div>
+                             </div>
+                           ))}
+                           {/* Render Stickers */}
                            {stickers.map(s => (
                              <div key={s.id} className="aspect-square flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl border border-indigo-100 p-2">
                                 <div className="text-4xl md:text-5xl mb-1 animate-pop">{s.icon}</div>
@@ -330,14 +361,21 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
           </div>
        </div>
 
+       {/* View Large Card Modal (Honor Cards) */}
        {viewingCard && (
          <div 
             className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in" 
             onClick={() => setViewingCard(null)}
          >
             <div className="relative w-full max-w-sm md:max-w-md bg-transparent flex flex-col items-center" onClick={e => e.stopPropagation()}>
+               {/* Close Button */}
                <button onClick={() => setViewingCard(null)} className="absolute -top-12 right-0 text-white text-4xl opacity-70 hover:opacity-100">✕</button>
-               <div className="w-full aspect-[3/5] island-float relative cursor-pointer" onClick={() => setIsCardFlipped(!isCardFlipped)}>
+               
+               {/* Wrapper with island-float animation */}
+               <div 
+                  className="w-full aspect-[3/5] island-float relative cursor-pointer" 
+                  onClick={() => setIsCardFlipped(!isCardFlipped)}
+               >
                  <HonorCard 
                     card={viewingCard} 
                     unlocked={true} 
@@ -345,24 +383,25 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
                     variant="modal"
                  />
                </div>
-               <div className="mt-8 text-white font-black text-xl tracking-widest uppercase opacity-80 text-center">{viewingCard.title}</div>
+               
+               <div className="mt-8 text-white font-black text-xl tracking-widest uppercase opacity-80 text-center">
+                  {viewingCard.title}
+               </div>
                <p className="text-white/40 text-xs mt-2 font-medium">点击卡片翻转查看详情</p>
             </div>
          </div>
        )}
 
+       {/* View Large Image Modal (Game Collection Cards) */}
        {viewingImage && (
          <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in" onClick={() => setViewingImage(null)}>
             <div className="relative w-full max-w-md bg-transparent flex flex-col items-center" onClick={e => e.stopPropagation()}>
                <button onClick={() => setViewingImage(null)} className="absolute -top-12 right-0 text-white text-4xl opacity-70 hover:opacity-100">✕</button>
-               <div className="w-full bg-white p-4 rounded-[2rem] shadow-2xl island-float border-4 border-amber-300 relative min-h-[300px] flex items-center justify-center">
+               <div className="w-full bg-white p-4 rounded-[2rem] shadow-2xl island-float border-4 border-amber-300 relative min-h-[200px] flex items-center justify-center">
                   <ImageLoader 
-                    src={viewingImage.src}
-                    alt={viewingImage.name} 
+                    src={viewingImage}
+                    alt="Card" 
                     className="w-full h-auto rounded-xl"
-                    fallbackText={viewingImage.name}
-                    fallbackType="collection"
-                    fallbackIcon={viewingImage.name.match(/\d+/)?.[0] || '🃏'}
                   />
                </div>
                <div className="mt-8 text-white font-black text-xl tracking-widest uppercase opacity-80">珍贵收藏</div>

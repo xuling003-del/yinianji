@@ -1,21 +1,20 @@
-
-import { Course, Lesson, Question, ParentSettings, QuestionCategory, AchievementCard, DecorationItem } from './types';
+﻿import { Course, Lesson, Question, ParentSettings, QuestionCategory, AchievementCard, DecorationItem } from './types';
 
 export const COURSES: Course[] = [
-  { id: 'main', title: '20天全能冒险', description: '涵盖数学计算、应用、思维与语文表达。', icon: '🚀' }
+  { id: 'main', title: '20天全能冒险', description: '涵盖数学计算、应用、逻辑与语文表达。', icon: '🚀' }
 ];
 
 export const DEFAULT_SETTINGS: ParentSettings = {
   questionCounts: {
-    'basic': 2,
-    'application': 1,
-    'logic': 1,
-    'emoji': 1,
-    'sentence': 1,
-    'word': 1,
-    'punctuation': 1,
-    'antonym': 1,
-    'synonym': 1
+    basic: 2,
+    application: 1,
+    logic: 1,
+    emoji: 1,
+    sentence: 1,
+    word: 1,
+    punctuation: 1,
+    antonym: 1,
+    synonym: 1
   },
   shuffleQuestions: true,
   customRewards: [
@@ -25,16 +24,16 @@ export const DEFAULT_SETTINGS: ParentSettings = {
 };
 
 export const STICKERS = [
-  { id: 's1', icon: '🦕', name: '小恐龙' },
+  { id: 's1', icon: '🦖', name: '小恐龙' },
   { id: 's2', icon: '🦄', name: '独角兽' },
   { id: 's3', icon: '🤖', name: '机器人' },
   { id: 's4', icon: '👽', name: '外星人' },
-  { id: 's5', icon: '🐳', name: '喷水鲸' },
+  { id: 's5', icon: '🐋', name: '喷水鲸' },
   { id: 's6', icon: '🦋', name: '彩蝶' },
   { id: 's7', icon: '🚀', name: '小火箭' },
   { id: 's8', icon: '🎪', name: '马戏团' },
   { id: 's9', icon: '🎨', name: '调色盘' },
-  { id: 's10', icon: '🍔', name: '汉堡包' },
+  { id: 's10', icon: '🍔', name: '汉堡包' }
 ];
 
 export const COLLECTION_CARD_COUNT = 10;
@@ -44,41 +43,34 @@ export const AVATARS = [
   { id: 'dog', icon: '🐶', cost: 100 },
   { id: 'lion', icon: '🦁', cost: 300 },
   { id: 'owl', icon: '🦉', cost: 500 },
-  { id: 'unicorn', icon: '🦄', cost: 1000 },
+  { id: 'unicorn', icon: '🦄', cost: 1000 }
 ];
 
 export const DECORATIONS: DecorationItem[] = [
-  // Themes (Backgrounds)
-  { id: 'theme_sky', type: 'theme', name: '蓝天岛', icon: '🌤️', cost: 0, styleClass: 'bg-sky-50' },
-  { id: 'theme_forest', type: 'theme', name: '森林岛', icon: '🌲', cost: 200, styleClass: 'bg-green-50' },
+  { id: 'theme_sky', type: 'theme', name: '蓝天岛', icon: '☀️', cost: 0, styleClass: 'bg-sky-50' },
+  { id: 'theme_forest', type: 'theme', name: '森林岛', icon: '🌳', cost: 200, styleClass: 'bg-green-50' },
   { id: 'theme_sunset', type: 'theme', name: '夕阳岛', icon: '🌇', cost: 400, styleClass: 'bg-orange-50' },
   { id: 'theme_dream', type: 'theme', name: '梦幻岛', icon: '🦄', cost: 800, styleClass: 'bg-purple-50' },
-  
-  // Pets (Floating companions)
+
   { id: 'pet_bird', type: 'pet', name: '小蓝鸟', icon: '🐦', cost: 0 },
   { id: 'pet_bee', type: 'pet', name: '勤劳蜂', icon: '🐝', cost: 150 },
   { id: 'pet_butterfly', type: 'pet', name: '花蝴蝶', icon: '🦋', cost: 300 },
   { id: 'pet_dragon', type: 'pet', name: '喷火龙', icon: '🐉', cost: 600 },
   { id: 'pet_ufo', type: 'pet', name: '外星船', icon: '🛸', cost: 1000 },
 
-  // Buildings (Fixed structures)
   { id: 'build_tent', type: 'building', name: '小帐篷', icon: '⛺', cost: 0 },
   { id: 'build_house', type: 'building', name: '小木屋', icon: '🏠', cost: 200 },
   { id: 'build_castle', type: 'building', name: '大城堡', icon: '🏰', cost: 500 },
   { id: 'build_ferris', type: 'building', name: '摩天轮', icon: '🎡', cost: 800 },
-  { id: 'build_rocket', type: 'building', name: '火箭基', icon: '🚀', cost: 1200 },
+  { id: 'build_rocket', type: 'building', name: '火箭塔', icon: '🚀', cost: 1200 }
 ];
-
-// ----------------------------------------------------------------------
-// 荣誉卡片 (Achievement Cards)
-// ----------------------------------------------------------------------
 
 export const ACHIEVEMENT_CARDS: AchievementCard[] = [
   {
     id: 'streak_3',
     title: '坚持之星',
     conditionText: '连续学习3天解锁',
-    icon: '🌱',
+    icon: '🌟',
     description: '坚持是成功的基石',
     message: '奖励给坚持与成长的你',
     colorClass: 'bg-green-100 border-green-300 text-green-700',
@@ -89,8 +81,8 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     title: '胜利勋章',
     conditionText: '连续学习10天解锁',
     icon: '🏆',
-    description: '你的毅力令人佩服',
-    message: '你不仅聪明，还勤奋，没有什么事情是你办不到的！',
+    description: '你的毅力让人佩服',
+    message: '你不仅聪明，还很勤奋，没有什么事情是你办不到的！',
     colorClass: 'bg-amber-100 border-amber-300 text-amber-700',
     image: '/honor/shengli.png'
   },
@@ -110,7 +102,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     conditionText: '单关卡1分钟内通关解锁',
     icon: '⚡',
     description: '思维敏捷，快如闪电',
-    message: '你像闪电一样迅捷，手握智慧的权杖',
+    message: '你像闪电一样迅捷，手握智慧的权杖！',
     colorClass: 'bg-sky-100 border-sky-300 text-sky-700',
     image: '/honor/shandian.png'
   },
@@ -118,7 +110,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     id: 'perfect_storm',
     title: '完美风暴',
     conditionText: '1分钟内且无错题通关解锁',
-    icon: '💎',
+    icon: '🌪️',
     description: '完美与速度的化身',
     message: '速度与准确的完美结合，你是当之无愧的超级探险家！',
     colorClass: 'bg-rose-100 border-rose-300 text-rose-700',
@@ -149,14 +141,14 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     title: '思维大师',
     conditionText: '累计答对100题',
     icon: '🧠',
-    description: '智慧的积淀，思维的升华',
+    description: '智慧的积淀，思维的升级',
     message: '100道题的正确解答，证明了你强大的逻辑思维能力！',
     colorClass: 'bg-purple-100 border-purple-300 text-purple-700',
     image: '/honor/siwei.png'
   },
   {
     id: 'collection_king',
-    title: '七彩收集家',
+    title: '七彩收藏家',
     conditionText: '收集5张不同珍藏卡',
     icon: '🌈',
     description: '探索的足迹，珍贵的收藏',
@@ -166,125 +158,98 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
   }
 ];
 
-// Helper to seed random
 function seededRandom(seed: number) {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
 }
 
-/**
- * Generates a lesson for a specific day with Progressive Difficulty and Spaced Repetition.
- */
 export function generateLesson(
   questionBank: Question[],
-  day: number, 
-  excludeIds: string[] = [], 
+  day: number,
+  excludeIds: string[] = [],
   userSeed: number = 0,
   settings: ParentSettings = DEFAULT_SETTINGS,
-  mistakeQueue: string[] = [] // New: Inject mistakes
+  mistakeQueue: string[] = []
 ): Lesson {
-  // Combine day and userSeed to create a unique but consistent seed for this day/user combo
-  const seed = (day * 123) + userSeed;
-  
-  // Calculate Target Difficulty (Progressive Curve)
-  // Day 1-4: Lv1-2
-  // Day 5-10: Lv2-3
-  // Day 11-15: Lv3-4
-  // Day 16-20: Lv4-5
-  const targetDiff = Math.min(5, Math.ceil(day / 4) + (day > 10 ? 1 : 0));
-  
-  // Create a pool of "Review Questions" from the mistakeQueue
-  // We take up to 2 review questions per day to keep frustration low but learning high
-  const maxReviewCount = 2;
-  const reviewQuestions = questionBank.filter(q => mistakeQueue.includes(q.id));
-  const selectedReviewQs = reviewQuestions.slice(0, maxReviewCount); // Take the first few (oldest mistakes)
-  const reviewIds = selectedReviewQs.map(q => q.id);
+  const seed = day * 123 + userSeed;
 
-  const shuffleQuestions = (arr: any[], customSeed: number) => {
+  const targetDiff = Math.min(5, Math.ceil(day / 4) + (day > 10 ? 1 : 0));
+
+  const maxReviewCount = 2;
+  const reviewQuestions = questionBank.filter((q) => mistakeQueue.includes(q.id));
+  const selectedReviewQs = reviewQuestions.slice(0, maxReviewCount);
+  const reviewIds = selectedReviewQs.map((q) => q.id);
+
+  const shuffleQuestions = (arr: Question[], customSeed: number) => {
     const newArr = [...arr];
-    for (let i = newArr.length - 1; i > 0; i--) {
+    for (let i = newArr.length - 1; i > 0; i -= 1) {
       const j = Math.floor(seededRandom(customSeed + i) * (i + 1));
       [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
     }
     return newArr;
   };
 
-  const getByCategory = (cat: string, count: number) => {
-    // 1. Try to find questions matching current difficulty range [Target-1, Target]
-    // 2. Fallback to any difficulty if not enough
-    // 3. Exclude reviewIds so we don't duplicate
+  const getByCategory = (cat: QuestionCategory, count: number) => {
     const diffMin = Math.max(1, targetDiff - 1);
     const diffMax = Math.min(5, targetDiff);
-    
-    // Base pool: matches category, not in general exclude list, not already selected as review
-    const basePool = questionBank.filter(q => 
-      q.category === cat && 
-      !excludeIds.includes(q.id) &&
-      !reviewIds.includes(q.id)
+
+    const basePool = questionBank.filter(
+      (q) => q.category === cat && !excludeIds.includes(q.id) && !reviewIds.includes(q.id)
     );
-    
-    // Filter by difficulty
-    let candidates = basePool.filter(q => {
-      const d = q.difficulty || 2; // Default to 2 if undefined
+
+    let candidates = basePool.filter((q) => {
+      const d = q.difficulty || 2;
       return d >= diffMin && d <= diffMax;
     });
-    
-    // If not enough, widen the search to all difficulties
+
     if (candidates.length < count) {
       candidates = basePool;
     }
 
-    // If still not enough (ran out of questions), reuse older used questions (excluding current review set)
     if (candidates.length < count) {
-       const reused = questionBank.filter(q => 
-         q.category === cat && 
-         excludeIds.includes(q.id) && 
-         !reviewIds.includes(q.id)
-       );
-       candidates = [...candidates, ...shuffleQuestions(reused, seed)];
+      const reused = questionBank.filter(
+        (q) => q.category === cat && excludeIds.includes(q.id) && !reviewIds.includes(q.id)
+      );
+      candidates = [...candidates, ...shuffleQuestions(reused, seed)];
     }
 
     return shuffleQuestions(candidates, seed).slice(0, count);
   };
 
-  let questions: Question[] = [...selectedReviewQs]; // Start with review questions
-  
-  (Object.keys(settings.questionCounts) as QuestionCategory[]).forEach(cat => {
+  let questions: Question[] = [...selectedReviewQs];
+
+  (Object.keys(settings.questionCounts) as QuestionCategory[]).forEach((cat) => {
     const count = settings.questionCounts[cat];
     if (count > 0) {
-      // Adjust count if we already have review questions of this category?
-      // For simplicity, we just append review questions on top, or we could subtract.
-      // Let's subtract to keep daily volume consistent.
-      const existingCount = questions.filter(q => q.category === cat).length;
+      const existingCount = questions.filter((q) => q.category === cat).length;
       const needed = Math.max(0, count - existingCount);
-      
+
       if (needed > 0) {
         questions = [...questions, ...getByCategory(cat, needed)];
       }
     }
   });
 
-  const icons = ['🌴', '🏹', '💎', '🏰', '🗺️', '🦜', '⛺', '🛶'];
+  const icons = ['🌴', '🏖️', '🌪️', '🏰', '🗺️', '🧭', '⛺', '🛸'];
   const icon = icons[day % icons.length];
 
   const stories = [
-    "勇敢的小探险家，今天我们要深入神秘的丛林！",
-    "传闻这片海域藏着失落的宝藏，让我们出发吧！",
-    "穿越这道彩虹之桥，就能到达云端的智慧之塔。",
-    "沙漠深处的金字塔里，刻着古老的算术咒语。",
-    "在寒冷的冰雪城堡，只有聪明的头脑能点燃篝火。",
-    "传说中的翡翠森林里，住着会出谜题的小精灵。",
-    "深海里的亚特兰蒂斯，石碑上记录着神奇的等式。",
-    "远古的火山岛上，每一块红石都蕴含着逻辑的力量。"
+    '勇敢的小探险家，今天我们要深入神秘的丛林！',
+    '传闻这片海域藏着失落的宝藏，让我们出发吧！',
+    '穿越这道彩虹之桥，就能到达云端的智慧之塔。',
+    '沙漠深处的金字塔里，刻着古老的算术咒语。',
+    '在寒冷的冰雪城堡，只有聪明的头脑能点燃篝火。',
+    '传说中的翡翠森林里，住着会出谜题的小精灵。',
+    '深海里的亚特兰蒂斯，石碑上记录着神奇的等式。',
+    '远古的火山岛上，每一块红石都蕴含着逻辑的力量。'
   ];
   const story = stories[day % stories.length];
 
-  // Shuffle the final mix so review questions aren't always first
   const finalQuestions = settings.shuffleQuestions ? shuffleQuestions(questions, seed + 999) : questions;
 
   return {
     day,
-    title: `第 ${day} 天：奇幻探索 (难度 Lv${targetDiff})`,
+    title: `第 ${day} 天：奇幻探索（难度 Lv${targetDiff}）`,
     icon,
     story,
     questions: finalQuestions,
