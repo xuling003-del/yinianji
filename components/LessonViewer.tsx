@@ -265,24 +265,24 @@ export const LessonViewer: React.FC<{
     handleNext();
   };
 
-  // Helper to ensure clean relative paths for images
+  // Helper to ensure clean absolute paths for images
+  // Fixes query params, removes legacy 'dist/' prefix, and ensures path starts with '/'
   const cleanPath = (path: string) => {
     if (!path) return '';
     let clean = path.split('?')[0]; 
-    if (clean.startsWith('/')) {
-      clean = clean.substring(1); 
+    
+    // Auto-remove 'dist/' prefix if present (legacy data fix)
+    if (clean.includes('dist/')) {
+       clean = clean.replace('dist/', '');
     }
     
-    // Auto-fix paths if they are missing 'dist/' but user says files are in public/dist/
-    if (clean.startsWith('media/') || clean.startsWith('honor/')) {
-       // Since we reverted to root, we just return clean (which is relative)
-       // If user had dist/ stored, this helper in LessonViewer isn't used for cleaning stored data
-       // But let's be safe: if it starts with dist/, strip it
-       if (clean.startsWith('dist/')) return clean.substring(5);
-       return clean;
+    // Ensure absolute path if not data/http
+    if (!clean.startsWith('/') && !clean.startsWith('http') && !clean.startsWith('data:')) {
+       clean = '/' + clean;
     }
     
-    return clean;
+    // Cleanup any double slashes (e.g. //honor/...)
+    return clean.replace('//', '/');
   };
 
   // --- Treasure Chest Logic ---
@@ -332,11 +332,11 @@ export const LessonViewer: React.FC<{
 
           for (const idx of shuffledIndices) {
              const distPath = `dist/media/card_${idx}.png`;
-             const legacyPath = `media/card_${idx}.png`;
-             const absLegacyPath = `/media/card_${idx}.png`;
+             const relativePath = `media/card_${idx}.png`;
+             const absolutePath = `/media/card_${idx}.png`;
              
              // Check all possible variants to avoid duplicates
-             if (!ownedCardPaths.has(distPath) && !ownedCardPaths.has(legacyPath) && !ownedCardPaths.has(absLegacyPath)) {
+             if (!ownedCardPaths.has(distPath) && !ownedCardPaths.has(relativePath) && !ownedCardPaths.has(absolutePath)) {
                 newCardIndex = idx;
                 break;
              }
@@ -347,7 +347,7 @@ export const LessonViewer: React.FC<{
                 id: `card_${Date.now()}_${newCardIndex}`,
                 type: 'card',
                 name: `珍藏卡片 #${newCardIndex}`,
-                icon: `media/card_${newCardIndex}.png`, // Use standard relative path
+                icon: `/media/card_${newCardIndex}.png`, // Use standard absolute path
                 obtainedAt: Date.now()
              };
           }

@@ -1,55 +1,55 @@
 
-const CACHE_NAME = 'quest-island-v43-root-paths';
+const CACHE_NAME = 'quest-island-v44-absolute-paths';
 
 // 核心文件：必须存在
 const CORE_ASSETS = [
-  './',
-  'index.html',
-  'manifest.json',
-  'data/manifest.json',
-  'data/math/basic.json',
-  'data/math/application.json',
-  'data/math/logic.json',
-  'data/math/emoji.json',
-  'data/chinese/sentence.json',
-  'data/chinese/word.json',
-  'data/chinese/punctuation.json',
-  'data/chinese/antonym.json',
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/data/manifest.json',
+  '/data/math/basic.json',
+  '/data/math/application.json',
+  '/data/math/logic.json',
+  '/data/math/emoji.json',
+  '/data/chinese/sentence.json',
+  '/data/chinese/word.json',
+  '/data/chinese/punctuation.json',
+  '/data/chinese/antonym.json',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap'
 ];
 
-// 1. 荣誉卡片 (Achievement Cards) - 位于 public/honor/
+// 1. 荣誉卡片 (Achievement Cards) - 使用绝对路径
 const HONOR_ASSETS = [
-  'honor/jianchi.png',
-  'honor/shengli.png',
-  'honor/zhihui.png',
-  'honor/shandian.png',
-  'honor/wanmei.png',
-  'honor/baifa.png',
-  'honor/zhishi.png',
-  'honor/siwei.png',
-  'honor/qicai.png'
+  '/honor/jianchi.png',
+  '/honor/shengli.png',
+  '/honor/zhihui.png',
+  '/honor/shandian.png',
+  '/honor/wanmei.png',
+  '/honor/baifa.png',
+  '/honor/zhishi.png',
+  '/honor/siwei.png',
+  '/honor/qicai.png'
 ];
 
-// 2. 收集卡片 (Collection Cards) - 位于 public/media/
+// 2. 收集卡片 (Collection Cards) - 使用绝对路径
 const COLLECTION_ASSETS = [
-  'media/card_1.png',
-  'media/card_2.png',
-  'media/card_3.png',
-  'media/card_4.png',
-  'media/card_5.png',
-  'media/card_6.png',
-  'media/card_7.png',
-  'media/card_8.png',
-  'media/card_9.png',
-  'media/card_10.png'
+  '/media/card_1.png',
+  '/media/card_2.png',
+  '/media/card_3.png',
+  '/media/card_4.png',
+  '/media/card_5.png',
+  '/media/card_6.png',
+  '/media/card_7.png',
+  '/media/card_8.png',
+  '/media/card_9.png',
+  '/media/card_10.png'
 ];
 
 // 可选文件
 const OPTIONAL_ASSETS = [
-  'icon/icon-192x192.png',
-  'icon/icon-512x512.png',
+  '/icon/icon-192x192.png',
+  '/icon/icon-512x512.png',
   ...HONOR_ASSETS,
   ...COLLECTION_ASSETS
 ];
@@ -69,7 +69,8 @@ self.addEventListener('install', (event) => {
       // 2. 尝试缓存可选文件
       const cachePromises = OPTIONAL_ASSETS.map(async (asset) => {
         try {
-           await cache.add(asset);
+           // 使用 Request 对象确保缓存键与 fetch 请求匹配
+           await cache.add(new Request(asset, { mode: 'no-cors' }));
         } catch (err) {
            console.log(`Failed to cache optional asset: ${asset}`, err);
         }
@@ -105,12 +106,12 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request)
         .then((networkResponse) => {
           return caches.open(CACHE_NAME).then((cache) => {
-            cache.put('index.html', networkResponse.clone());
+            cache.put('/index.html', networkResponse.clone());
             return networkResponse;
           });
         })
         .catch(() => {
-          return caches.match('index.html');
+          return caches.match('/index.html');
         })
     );
     return;

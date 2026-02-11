@@ -82,7 +82,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '坚持是成功的基石',
     message: '奖励给坚持与成长的你',
     colorClass: 'bg-green-100 border-green-300 text-green-700',
-    image: 'honor/jianchi.png'
+    image: '/honor/jianchi.png'
   },
   {
     id: 'streak_10',
@@ -92,7 +92,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '你的毅力令人佩服',
     message: '你不仅聪明，还勤奋，没有什么事情是你办不到的！',
     colorClass: 'bg-amber-100 border-amber-300 text-amber-700',
-    image: 'honor/shengli.png'
+    image: '/honor/shengli.png'
   },
   {
     id: 'perfect_score',
@@ -102,7 +102,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '追求卓越，一丝不苟',
     message: '奖励给细心与智慧的你',
     colorClass: 'bg-indigo-100 border-indigo-300 text-indigo-700',
-    image: 'honor/zhihui.png'
+    image: '/honor/zhihui.png'
   },
   {
     id: 'speed_runner',
@@ -112,7 +112,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '思维敏捷，快如闪电',
     message: '你像闪电一样迅捷，手握智慧的权杖',
     colorClass: 'bg-sky-100 border-sky-300 text-sky-700',
-    image: 'honor/shandian.png'
+    image: '/honor/shandian.png'
   },
   {
     id: 'perfect_storm',
@@ -122,7 +122,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '完美与速度的化身',
     message: '速度与准确的完美结合，你是当之无愧的超级探险家！',
     colorClass: 'bg-rose-100 border-rose-300 text-rose-700',
-    image: 'honor/wanmei.png'
+    image: '/honor/wanmei.png'
   },
   {
     id: 'sharpshooter',
@@ -132,7 +132,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '精准与专注的完美展现',
     message: '你的专注力像神射手一样精准，每道题目都轻松命中！',
     colorClass: 'bg-orange-100 border-orange-300 text-orange-700',
-    image: 'honor/baifa.png'
+    image: '/honor/baifa.png'
   },
   {
     id: 'knowledge_expert',
@@ -142,7 +142,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '勤奋学习，收获满满',
     message: '两小时的专注学习，你已经积累了满满的智慧！',
     colorClass: 'bg-blue-100 border-blue-300 text-blue-700',
-    image: 'honor/zhishi.png'
+    image: '/honor/zhishi.png'
   },
   {
     id: 'logic_master',
@@ -152,7 +152,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '智慧的积淀，思维的升华',
     message: '100道题的正确解答，证明了你强大的逻辑思维能力！',
     colorClass: 'bg-purple-100 border-purple-300 text-purple-700',
-    image: 'honor/siwei.png'
+    image: '/honor/siwei.png'
   },
   {
     id: 'collection_king',
@@ -162,7 +162,7 @@ export const ACHIEVEMENT_CARDS: AchievementCard[] = [
     description: '探索的足迹，珍贵的收藏',
     message: '你的背包里装满了奇珍异宝，真是个了不起的收藏家！',
     colorClass: 'bg-pink-100 border-pink-300 text-pink-700',
-    image: 'honor/qicai.png'
+    image: '/honor/qicai.png'
   }
 ];
 

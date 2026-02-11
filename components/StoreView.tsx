@@ -39,21 +39,24 @@ export const StoreView: React.FC<{ user: UserState; setUser: (u: UserState) => v
     }, 3000);
   };
 
-  // Helper to ensure clean relative paths for images
-  // Fixes query params, leading slashes, and REMOVES 'dist/' prefix to fix legacy data
+  // Helper to ensure clean absolute paths for images
+  // Fixes query params, removes legacy 'dist/' prefix, and ensures path starts with '/'
   const cleanPath = (path: string) => {
     if (!path) return '';
     let clean = path.split('?')[0]; 
-    if (clean.startsWith('/')) {
-      clean = clean.substring(1); 
+    
+    // Auto-remove 'dist/' prefix if present (legacy data fix)
+    if (clean.includes('dist/')) {
+       clean = clean.replace('dist/', '');
     }
     
-    // Auto-remove 'dist/' prefix if present (revert legacy fix)
-    if (clean.startsWith('dist/')) {
-       clean = clean.substring(5); // Remove "dist/"
+    // Ensure absolute path if not data/http
+    if (!clean.startsWith('/') && !clean.startsWith('http') && !clean.startsWith('data:')) {
+       clean = '/' + clean;
     }
     
-    return clean;
+    // Cleanup any double slashes (e.g. //honor/...)
+    return clean.replace('//', '/');
   };
 
   // Safe filtering
