@@ -265,6 +265,26 @@ export const LessonViewer: React.FC<{
     handleNext();
   };
 
+  // Helper to ensure clean relative paths for images
+  const cleanPath = (path: string) => {
+    if (!path) return '';
+    let clean = path.split('?')[0]; 
+    if (clean.startsWith('/')) {
+      clean = clean.substring(1); 
+    }
+    
+    // Auto-fix paths if they are missing 'dist/' but user says files are in public/dist/
+    if (clean.startsWith('media/') || clean.startsWith('honor/')) {
+       // Since we reverted to root, we just return clean (which is relative)
+       // If user had dist/ stored, this helper in LessonViewer isn't used for cleaning stored data
+       // But let's be safe: if it starts with dist/, strip it
+       if (clean.startsWith('dist/')) return clean.substring(5);
+       return clean;
+    }
+    
+    return clean;
+  };
+
   // --- Treasure Chest Logic ---
   const handleOpenChest = () => {
     if (chestState !== 'idle') return;
@@ -311,10 +331,12 @@ export const LessonViewer: React.FC<{
           let newCardIndex = -1;
 
           for (const idx of shuffledIndices) {
-             // Correctly use absolute paths for consistency
-             const path = `/media/card_${idx}.png`;
-             // Also check legacy relative path just in case
-             if (!ownedCardPaths.has(path) && !ownedCardPaths.has(`media/card_${idx}.png`)) {
+             const distPath = `dist/media/card_${idx}.png`;
+             const legacyPath = `media/card_${idx}.png`;
+             const absLegacyPath = `/media/card_${idx}.png`;
+             
+             // Check all possible variants to avoid duplicates
+             if (!ownedCardPaths.has(distPath) && !ownedCardPaths.has(legacyPath) && !ownedCardPaths.has(absLegacyPath)) {
                 newCardIndex = idx;
                 break;
              }
@@ -325,7 +347,7 @@ export const LessonViewer: React.FC<{
                 id: `card_${Date.now()}_${newCardIndex}`,
                 type: 'card',
                 name: `珍藏卡片 #${newCardIndex}`,
-                icon: `/media/card_${newCardIndex}.png`, // Ensure leading slash
+                icon: `media/card_${newCardIndex}.png`, // Use standard relative path
                 obtainedAt: Date.now()
              };
           }
@@ -563,11 +585,12 @@ export const LessonViewer: React.FC<{
                    {wonReward?.isCard ? (
                       <div className="w-48 h-48 md:w-64 md:h-64 mb-6 rounded-2xl border-4 border-amber-300 shadow-xl overflow-hidden island-float bg-white relative">
                          <ImageLoader 
-                           src={`${wonReward.icon}?v=1`} 
+                           src={cleanPath(wonReward.icon)}
                            alt={wonReward.name} 
                            className="w-full h-full p-2"
                            fallbackType="collection"
                            fallbackText={wonReward.name.replace('珍藏卡片 #', '')}
+                           fallbackIcon={wonReward.name.match(/\d+/)?.[0] || '🃏'}
                          />
                       </div>
                    ) : (

@@ -5,6 +5,7 @@ import { generateCardDataUri } from '../utils/helpers';
 interface ImageLoaderProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackText?: string;
   fallbackType?: 'honor' | 'collection' | 'default';
+  fallbackIcon?: string;
   skeletonClassName?: string;
 }
 
@@ -14,6 +15,7 @@ export const ImageLoader: React.FC<ImageLoaderProps> = ({
   className, 
   fallbackText = 'IMAGE', 
   fallbackType = 'default',
+  fallbackIcon,
   skeletonClassName = 'bg-gray-200 animate-pulse',
   ...props 
 }) => {
@@ -49,7 +51,7 @@ export const ImageLoader: React.FC<ImageLoaderProps> = ({
       {/* Fallback */}
       {status === 'error' && (
         <img 
-          src={generateCardDataUri(fallbackText, fallbackType)}
+          src={generateCardDataUri(fallbackText, fallbackType, fallbackIcon)}
           alt="Fallback"
           className="w-full h-full object-contain p-2 opacity-100"
         />

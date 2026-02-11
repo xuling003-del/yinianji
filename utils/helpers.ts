@@ -22,7 +22,7 @@ export function getTimeOfDay(): TimeOfDay {
   return 'night';
 }
 
-export function generateCardDataUri(text: string, type: 'honor' | 'collection' | 'default' = 'default'): string {
+export function generateCardDataUri(text: string, type: 'honor' | 'collection' | 'default' = 'default', icon?: string): string {
   // Config Colors based on type
   const isHonor = type === 'honor';
   const isCollection = type === 'collection';
@@ -40,7 +40,7 @@ export function generateCardDataUri(text: string, type: 'honor' | 'collection' |
   }
 
   // Safe text truncation
-  const mainChar = text ? text.charAt(0) : '?';
+  const mainChar = icon || (text ? text.charAt(0) : '?');
   const fullText = text || '';
 
   const svg = `
